@@ -1,0 +1,14 @@
+{
+  "id": "data_emo_000028",
+  "created_at": "2026-09-28T18:53:54",
+  "folder_path": "data_emo/data_emo_000028",
+  "board_id": "9d9c",
+  "has_audio": false,
+  "initial_emotion": "disgust",
+  "model_emotion": null,
+  "review_emotion": null,
+  "review_count": 0,
+  "reviews": [],
+  "is_invalid": false,
+  "is_reviewed": false
+}

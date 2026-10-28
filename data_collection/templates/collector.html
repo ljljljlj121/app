@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情感采集 · 板子端</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .btn-emotion {
+            transition: all .15s;
+        }
+
+        .btn-emotion:active {
+            transform: scale(0.96);
+        }
+
+        .btn-emotion:hover {
+            transform: scale(1.03);
+        }
+
+        .progress-bar {
+            transition: width .3s ease;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-4 select-none">
+    <div class="max-w-2xl mx-auto">
+
+        <div class="text-center mb-4">
+            <div class="text-3xl mb-1">🎭</div>
+            <h1 class="text-xl font-bold text-blue-400">多模态情感数据采集</h1>
+            <p id="board-label" class="text-slate-400 text-xs mt-1">板子端 · {{ board_id }} · 上传至 {{ server }}</p>
+        </div>
+
+        <!-- Tab 切换 -->
+        <div class="flex mb-4 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <button id="tab-collect" onclick="switchTab('collect')"
+                class="flex-1 py-3 text-sm font-bold text-blue-400 bg-slate-700 border-r border-slate-600">
+                📹 采集录制
+            </button>
+            <button id="tab-review" onclick="switchTab('review')" class="flex-1 py-3 text-sm font-bold text-slate-400">
+                🔍 盲审复核 (需双重审核)
+            </button>
+        </div>
+
+        <!-- 1. 采集录制面板 -->
+        <div id="collect-panel">
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden mb-4">
+                <div class="relative">
+                    <img id="preview" src="/video_feed" class="w-full bg-black aspect-[4/3] object-contain block">
+
+                    <!-- 录制提示条（右上角微型常驻，完全不挡画面） -->
+                    <div id="rec-tag"
+                        class="absolute top-3 right-3 hidden flex items-center gap-2 bg-red-600/90 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg animate-pulse">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-white"></span>
+                        <span id="rec-tag-text">录制中…</span>
+                    </div>
+
+                    <!-- 底部轻量录制进度条 -->
+                    <div id="rec-progress-wrapper"
+                        class="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-700/80 hidden">
+                        <div id="prog-bar" class="progress-bar bg-red-500 h-full" style="width:0%"></div>
+                    </div>
+
+                    <!-- 上传半透明遮罩 -->
+                    <div id="upload-overlay"
+                        class="absolute inset-0 flex flex-col items-center justify-center bg-black/70 hidden">
+                        <div class="text-blue-400 text-3xl mb-2">📤</div>
+                        <div class="text-white text-base" id="upload-msg">正在编码音视频…</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="status-bar"
+                class="bg-slate-800 rounded-xl border border-slate-700 px-4 py-3 mb-4 text-sm text-slate-300 text-center">
+                就绪，请选择下方录制模式开始采集
+            </div>
+
+            <!-- 采集体验调优配置面板 -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-3 mb-3 text-xs space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-300 font-semibold">⏳ 准备倒计时：</span>
+                        <input type="number" id="pre-delay-input" min="0" max="10" step="1" value="3"
+                            class="w-16 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-center text-white font-mono focus:border-blue-500">
+                        <span class="text-slate-400">秒 (预留准备姿势，避免录入转头)</span>
+                    </div>
+                    <span class="text-slate-500">即时生效</span>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-700/60 pt-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-300 font-semibold">🎙️ 语音停顿阈值：</span>
+                        <input type="number" id="vad-timeout-input" min="0.5" max="6.0" step="0.1" value="1.5"
+                            class="w-16 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-center text-white font-mono focus:border-blue-500">
+                        <span class="text-slate-400">秒 (停顿超过此时间判定结束)</span>
+                    </div>
+                    <button onclick="saveVadTimeout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded transition-all">
+                        保存设置
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-700/60 pt-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-300 font-semibold">🔊 声音激活灵敏度：</span>
+                        <input type="number" id="vad-threshold-input" min="20" max="1500" step="20" value="200"
+                            class="w-16 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-center text-white font-mono focus:border-blue-500">
+                        <span class="text-slate-400">RMS 能量 (越小越容易检测说话)</span>
+                    </div>
+                    <button onclick="saveVadThreshold()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded transition-all">
+                        保存设置
+                    </button>
+                </div>
+            </div>
+
+            <!-- 录制模式双按钮 -->
+            <div id="record-section" class="grid grid-cols-2 gap-3">
+                <button id="btn-record-face" onclick="startRecord('face_only')"
+                    class="bg-blue-600 hover:bg-blue-500 active:scale-98 text-white font-bold py-4 rounded-2xl transition-all shadow-lg flex flex-col items-center justify-center gap-1">
+                    <div class="text-lg flex items-center gap-1"><span>😐</span> 纯表情模式</div>
+                    <span class="text-xs text-blue-200 font-normal">不录音 · 固定 5 秒</span>
+                </button>
+
+                <button id="btn-record-vad" onclick="startRecord('av_vad')"
+                    class="bg-indigo-600 hover:bg-indigo-500 active:scale-98 text-white font-bold py-4 rounded-2xl transition-all shadow-lg flex flex-col items-center justify-center gap-1">
+                    <div class="text-lg flex items-center gap-1"><span>🎙️</span> 音视频互动</div>
+                    <span class="text-xs text-indigo-200 font-normal">随说话延长 · 说完自动截断</span>
+                </button>
+            </div>
+            
+            <!-- 音视频同步时间差调节 -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 px-4 py-2.5 mt-3 mb-3 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-300 font-semibold">⏱️ 音频时间补偿：</span>
+                    <input type="number" id="audio-offset-input" step="0.05" value="0.0"
+                        class="w-20 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-center text-white focus:outline-none focus:border-blue-500 font-mono">
+                    <span class="text-slate-400">秒 (正值延后，负值提前)</span>
+                </div>
+                <button onclick="saveAudioOffset()" 
+                    class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition-all">
+                    保存设置
+                </button>
+            </div>
+
+            <div id="emotion-section" class="hidden">
+                <div class="text-center text-slate-200 mb-3 text-sm font-semibold">请选择本次录制的情绪：</div>
+                <div class="grid grid-cols-2 gap-3">
+                    {% for emo, label in emotions %}
+                    <button onclick="submitEmotion('{{ emo }}')"
+                        class="btn-emotion bg-slate-700 hover:bg-blue-600 text-white font-medium py-4 rounded-xl border border-slate-600 text-lg">{{
+                        label }}</button>
+                    {% endfor %}
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <button onclick="submitInvalid()"
+                        class="border border-red-700/70 text-red-400 hover:bg-red-900/30 py-3 rounded-xl text-sm font-bold">⛔
+                        标记无效数据</button>
+                    <button onclick="cancelEmotion()"
+                        class="border border-slate-600 text-slate-400 hover:bg-slate-700 py-3 rounded-xl text-sm">✕ 跳过
+                        (稍后复核)</button>
+                </div>
+            </div>
+
+            <div id="error-box"
+                class="hidden mt-4 bg-red-900/50 border border-red-700 text-red-300 text-sm rounded-xl px-4 py-3 text-center">
+            </div>
+        </div>
+
+        <!-- 2. 二次盲审复核面板 -->
+        <div id="review-panel" class="hidden">
+            <div class="flex gap-2 mb-3">
+                <select id="review-filter" onchange="loadSamples()"
+                    class="flex-1 bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-sm">
+                    <option value="pending">⏳ 待复核 (盲审池)</option>
+                    <option value="all">📁 全部样本列表</option>
+                </select>
+                <button onclick="loadSamples()"
+                    class="bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 rounded-xl px-4 py-2 text-sm">🔄
+                    刷新池</button>
+                <button onclick="reindexSamples()"
+                    class="bg-amber-700/80 hover:bg-amber-600 text-amber-100 rounded-xl px-3 py-2 text-sm transition-all"
+                    title="将文件编号重新排布为从 000001 开始连续连续">🔢 重排编号</button>
+            </div>
+
+            <div id="sample-list" class="space-y-2 mb-4" style="max-height:280px; overflow-y:auto;">
+                <div class="text-slate-500 text-sm text-center py-8">点击刷新加载样本</div>
+            </div>
+
+            <div id="review-detail" class="hidden bg-slate-800 rounded-2xl border border-slate-700 p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span id="review-sample-id" class="text-slate-400 text-xs font-mono"></span>
+                    <button onclick="closeReview()"
+                        class="text-slate-400 hover:text-white text-xs px-2 py-1 bg-slate-700 rounded">✕ 关闭</button>
+                </div>
+
+                <div class="text-xs text-slate-400 mb-3 flex items-center justify-between">
+                    <span>盲审模式：<span class="text-blue-400 font-semibold">标签已隐藏</span></span>
+                    <span>当前审核进度：<span id="review-count-badge" class="text-yellow-400 font-bold">0 / 2 次</span></span>
+                </div>
+
+                <video id="review-video" controls class="w-full rounded-xl mb-2 bg-black aspect-[4/3] object-contain"></video>
+                <audio id="review-audio" controls class="w-full mb-3"></audio>
+
+                <div class="text-slate-200 text-sm font-bold mb-2">独立判定情绪：</div>
+                <div id="review-emo-btns" class="grid grid-cols-2 gap-2 mb-3">
+                    {% for emo, label in emotions %}
+                    <button onclick="submitReview('{{ emo }}', false)"
+                        class="bg-slate-700 hover:bg-blue-600 text-white font-medium py-3 rounded-xl border border-slate-600 text-sm">{{
+                        label }}</button>
+                    {% endfor %}
+                </div>
+                <button onclick="submitReview(null, true)"
+                    class="w-full border border-red-700/60 text-red-400 hover:bg-red-900/30 py-3 rounded-xl text-sm font-bold">⛔
+                    判定为无效样本</button>
+            </div>
+            <div id="review-msg" class="text-center text-sm mt-3 hidden"></div>
+            <div class="flex gap-2 mb-2 px-1 text-xs text-slate-400 justify-between items-center">
+                <span>当前列表统计：</span>
+                <div class="flex gap-2">
+                    <span class="bg-indigo-900/60 text-indigo-300 px-2 py-0.5 rounded border border-indigo-700/50">
+                        🎙️ 有声: <b id="stat-audio-count">0</b> 条
+                    </span>
+                    <span class="bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded border border-slate-600/50">
+                        😐 纯表情: <b id="stat-silent-count">0</b> 条
+                    </span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const EMOTIONS_MAP = {
+            happy: "😊 开心", sad: "😢 悲伤", angry: "😠 愤怒",
+            fear: "😨 恐惧", disgust: "🤢 厌恶", surprise: "😲 惊讶", neutral: "😐 平静"
+        };
+
+        let polling = null;
+        let currentSampleId = null;
+        let hasPlayedBeep = false;
+
+        // ── 提示音生成 ─────────────────────────────────────────────────────────────
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const playTone = (freq, startTime, duration) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + duration);
+                };
+
+                const now = audioCtx.currentTime;
+                playTone(660, now, 0.12);
+                playTone(1100, now + 0.15, 0.2);
+            } catch (e) {
+                console.warn("音频提示播放失败:", e);
+            }
+        }
+
+        function switchTab(tab) {
+            const collectPanel = document.getElementById("collect-panel");
+            const reviewPanel = document.getElementById("review-panel");
+            const tabCollect = document.getElementById("tab-collect");
+            const tabReview = document.getElementById("tab-review");
+
+            if (tab === "collect") {
+                collectPanel.classList.remove("hidden");
+                reviewPanel.classList.add("hidden");
+                tabCollect.className = "flex-1 py-3 text-sm font-bold text-blue-400 bg-slate-700 border-r border-slate-600";
+                tabReview.className = "flex-1 py-3 text-sm font-bold text-slate-400";
+            } else {
+                collectPanel.classList.add("hidden");
+                reviewPanel.classList.remove("hidden");
+                tabReview.className = "flex-1 py-3 text-sm font-bold text-blue-400 bg-slate-700";
+                tabCollect.className = "flex-1 py-3 text-sm font-bold text-slate-400 border-r border-slate-600";
+                loadSamples();
+            }
+        }
+
+        function setStatus(msg, cls = "text-slate-300") {
+            const el = document.getElementById("status-bar");
+            el.textContent = msg;
+            el.className = `bg-slate-800 rounded-xl border border-slate-700 px-4 py-3 mb-4 text-sm text-center ${cls}`;
+        }
+
+        function setBtnsDisabled(disabled) {
+            document.getElementById("btn-record-face").disabled = disabled;
+            document.getElementById("btn-record-vad").disabled = disabled;
+        }
+
+        async function startRecord(mode) {
+            setBtnsDisabled(true);
+            document.getElementById("error-box").classList.add("hidden");
+            hasPlayedBeep = false;
+
+            const delayInput = document.getElementById("pre-delay-input");
+            let delaySeconds = parseInt(delayInput ? delayInput.value : 0, 10);
+            if (isNaN(delaySeconds) || delaySeconds < 0) delaySeconds = 0;
+
+            const recTag = document.getElementById("rec-tag");
+            const recTagText = document.getElementById("rec-tag-text");
+
+            // 自选倒计时逻辑
+            if (delaySeconds > 0) {
+                recTag.classList.remove("hidden");
+                for (let i = delaySeconds; i > 0; i--) {
+                    recTagText.textContent = `准备录制: ${i}s`;
+                    setStatus(`请就位，将在 ${i} 秒后正式开始录制…`, "text-yellow-400");
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+
+            recTagText.textContent = "启动中…";
+            const res = await fetch("/api/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode })
+            });
+            const data = await res.json();
+            if (!data.ok) {
+                document.getElementById("error-box").textContent = "⚠️ " + (data.msg || "启动失败");
+                document.getElementById("error-box").classList.remove("hidden");
+                recTag.classList.add("hidden");
+                setBtnsDisabled(false);
+                return;
+            }
+            polling = setInterval(pollStatus, 300);
+        }
+
+        async function pollStatus() {
+            try {
+                const res = await fetch("/api/status");
+                const s = await res.json();
+                const recTag = document.getElementById("rec-tag");
+                const recTagText = document.getElementById("rec-tag-text");
+                const recProgWrapper = document.getElementById("rec-progress-wrapper");
+                const uploadOverlay = document.getElementById("upload-overlay");
+                const recSection = document.getElementById("record-section");
+                const emoSection = document.getElementById("emotion-section");
+                const progBar = document.getElementById("prog-bar");
+
+                if (s.status === "recording") {
+                    recTag.classList.remove("hidden");
+                    recProgWrapper.classList.remove("hidden");
+                    uploadOverlay.classList.add("hidden");
+                    progBar.style.width = s.progress + "%";
+                    recTagText.textContent = s.mode === "face_only" ? "纯表情录制中…" : "语音侦听/录制中…";
+                    setStatus(s.message || "录制中…", "text-red-400");
+                } else if (s.status === "merging") {
+                    // 录制循环刚结束，准备 ffmpeg 编码时立即触发发声
+                    if (!hasPlayedBeep) {
+                        playBeepSound();
+                        hasPlayedBeep = true;
+                    }
+                    recTag.classList.add("hidden");
+                    recProgWrapper.classList.add("hidden");
+                    uploadOverlay.classList.remove("hidden");
+                    document.getElementById("upload-msg").textContent = s.message;
+                    setStatus(s.message, "text-yellow-400");
+                } else if (s.status === "recorded" || s.status === "uploading") {
+                    if (!hasPlayedBeep) {
+                        playBeepSound();
+                        hasPlayedBeep = true;
+                    }
+                    recTag.classList.add("hidden");
+                    recProgWrapper.classList.add("hidden");
+                    uploadOverlay.classList.remove("hidden");
+                    document.getElementById("upload-msg").textContent = s.message;
+                    setStatus(s.message, "text-blue-400");
+                } else if (s.status === "done") {
+                    if (!hasPlayedBeep) {
+                        playBeepSound();
+                        hasPlayedBeep = true;
+                    }
+                    recTag.classList.add("hidden");
+                    recProgWrapper.classList.add("hidden");
+                    uploadOverlay.classList.add("hidden");
+                    recSection.classList.add("hidden");
+                    emoSection.classList.remove("hidden");
+                    setStatus("录制完成！请选择情绪标签", "text-green-400");
+                    clearInterval(polling);
+                } else if (s.status === "idle") {
+                    recTag.classList.add("hidden");
+                    recProgWrapper.classList.add("hidden");
+                    uploadOverlay.classList.add("hidden");
+                    recSection.classList.remove("hidden");
+                    emoSection.classList.add("hidden");
+                    setBtnsDisabled(false);
+                    setStatus("就绪，请选择下方录制模式开始采集", "text-slate-300");
+                    clearInterval(polling);
+                } else if (s.status === "error") {
+                    recTag.classList.add("hidden");
+                    recProgWrapper.classList.add("hidden");
+                    uploadOverlay.classList.add("hidden");
+                    recSection.classList.remove("hidden");
+                    setBtnsDisabled(false);
+                    document.getElementById("error-box").textContent = "⚠️ " + (s.error || s.message);
+                    document.getElementById("error-box").classList.remove("hidden");
+                    setStatus("录制或上传出错", "text-red-400");
+                    clearInterval(polling);
+                }
+            } catch (e) { }
+        }
+
+        async function submitEmotion(emotion) {
+            const res = await fetch("/api/submit_emotion", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ emotion, is_invalid: false })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                document.getElementById("emotion-section").classList.add("hidden");
+                document.getElementById("record-section").classList.remove("hidden");
+                setBtnsDisabled(false);
+                setStatus("标注完成 ✓ 可继续录制", "text-green-400");
+            }
+        }
+
+        async function submitInvalid() {
+            const res = await fetch("/api/submit_emotion", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ emotion: null, is_invalid: true })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                document.getElementById("emotion-section").classList.add("hidden");
+                document.getElementById("record-section").classList.remove("hidden");
+                setBtnsDisabled(false);
+                setStatus("已标记为无效数据 ✓", "text-yellow-400");
+            }
+        }
+
+        async function cancelEmotion() {
+            await fetch("/api/submit_emotion", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ emotion: "__skip__" })
+            });
+            document.getElementById("emotion-section").classList.add("hidden");
+            document.getElementById("record-section").classList.remove("hidden");
+            setBtnsDisabled(false);
+            setStatus("已跳过情绪选择", "text-slate-400");
+        }
+
+        // ── 复核交互 ───────────────────────────────────────────────────────────
+        async function loadSamples() {
+            const filter = document.getElementById("review-filter").value;
+            const list = document.getElementById("sample-list");
+            list.innerHTML = '<div class="text-slate-500 text-sm text-center py-6">加载中…</div>';
+            try {
+                const res = await fetch(`/api/review/samples?filter=${filter}`);
+                const data = await res.json();
+                if (!data.ok) { list.innerHTML = `<div class="text-red-400 text-sm text-center py-4">加载失败: ${data.msg}</div>`; return; }
+                const samples = data.samples || [];
+                
+                // 1. 统计有声与无声条数
+                const audioCount = samples.filter(s => s.has_audio).length;
+                const silentCount = samples.length - audioCount;
+                document.getElementById("stat-audio-count").textContent = audioCount;
+                document.getElementById("stat-silent-count").textContent = silentCount;
+
+                if (!samples.length) {
+                    list.innerHTML = '<div class="text-slate-500 text-sm text-center py-6">暂无待复核样本</div>';
+                    return;
+                }
+                // 2. 渲染卡片，增加 🎙️ 有声 / 😐 纯表情 标签
+                list.innerHTML = samples.map(s => `
+      <div onclick="openReview('${s.id}', ${s.review_count || 0})" class="bg-slate-700/60 hover:bg-slate-700 border border-slate-700 rounded-xl px-4 py-3 cursor-pointer flex justify-between items-center">
+        <div>
+          <div class="text-slate-200 text-sm font-mono flex items-center gap-2">
+            <span>${s.id}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded ${s.has_audio ? 'bg-indigo-900 text-indigo-300 border border-indigo-700' : 'bg-slate-800 text-slate-400'}">
+              ${s.has_audio ? '🎙️ 有声' : '😐 纯表情'}
+            </span>
+          </div>
+          <div class="text-slate-400 text-xs mt-0.5">${s.created_at || ""} · 板子: ${s.board_id || "?"}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs ${s.is_reviewed ? "text-green-400" : "text-yellow-400"}">
+            ${s.is_invalid ? "⛔ 无效" : (s.is_reviewed ? "✓ 已完成" : `⏳ 审核中 (${s.review_count || 0}/2)`)}
+          </div>
+          <div class="text-xs text-slate-400 mt-0.5">盲审隐藏标签</div>
+        </div>
+      </div>`).join("");
+            } catch (e) {
+                list.innerHTML = `<div class="text-red-400 text-sm text-center py-4">网络错误: ${e}</div>`;
+            }
+        }
+
+        async function openReview(sampleId, count) {
+            const lockRes = await fetch(`/api/review/lock/${sampleId}`, { method: "POST" });
+            const lockData = await lockRes.json();
+            if (!lockData.ok) {
+                alert("该样本正在被其他板子复核中: " + (lockData.msg || ""));
+                return;
+            }
+            currentSampleId = sampleId;
+
+            document.getElementById("review-detail").classList.remove("hidden");
+            document.getElementById("review-sample-id").textContent = sampleId;
+            document.getElementById("review-count-badge").textContent = `${count} / 2 次`;
+
+            const vid = document.getElementById("review-video");
+            const aud = document.getElementById("review-audio");
+            vid.src = `/api/review/proxy_media?path=${sampleId}/merged.mp4`;
+            vid.onerror = () => { vid.src = `/api/review/proxy_media?path=${sampleId}/video.mp4`; };
+            vid.load();
+            aud.src = `/api/review/proxy_media?path=${sampleId}/audio.wav`;
+            aud.load();
+
+            document.getElementById("review-detail").scrollIntoView({ behavior: "smooth" });
+        }
+
+        async function closeReview() {
+            if (currentSampleId) {
+                await fetch(`/api/review/unlock/${currentSampleId}`, { method: "POST" });
+                currentSampleId = null;
+            }
+            document.getElementById("review-detail").classList.add("hidden");
+            document.getElementById("review-video").src = "";
+            document.getElementById("review-audio").src = "";
+        }
+
+        async function submitReview(emotion, isInvalid) {
+            if (!currentSampleId) return;
+            const res = await fetch(`/api/review/submit/${currentSampleId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ review_emotion: emotion, is_invalid: isInvalid })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                currentSampleId = null;
+                document.getElementById("review-detail").classList.add("hidden");
+                const msg = document.getElementById("review-msg");
+                const revCount = data.data?.review_count || 1;
+                if (isInvalid) {
+                    msg.textContent = "✓ 已标记为无效样本";
+                } else {
+                    msg.textContent = revCount >= 2 ? "✓ 二次复核完成，样本已归档" : `✓ 第 ${revCount} 次复核完成，已重新入池等待二次复核`;
+                }
+                msg.className = "text-center text-sm text-green-400 mt-3";
+                msg.classList.remove("hidden");
+                loadSamples();
+            } else {
+                alert("提交失败: " + data.msg);
+            }
+        }
+
+        async function reindexSamples() {
+            if (!confirm("⚠️ 操作确认：\n将永久删除所有标记为【无效】和标记不一致的样本，并把剩余有效样本按 000001 开始重新连续编号。\n是否继续？")) {
+                return;
+            }
+            try {
+                const res = await fetch("/api/review/reindex", { method: "POST" });
+                const data = await res.json();
+                if (data.ok) {
+                    alert("✅ " + (data.msg || "清理并重排完成"));
+                    loadSamples();
+                } else {
+                    alert("❌ 操作失败: " + data.msg);
+                }
+            } catch (e) {
+                alert("网络错误: " + e);
+            }
+        }
+
+        // ── 音频时间差补偿逻辑 ──────────────────────────────────────────────────
+        async function fetchAudioOffset() {
+            try {
+                const res = await fetch("/api/config/audio_offset");
+                const d = await res.json();
+                if (d.ok) {
+                    document.getElementById("audio-offset-input").value = d.offset;
+                }
+            } catch(e) {}
+        }
+
+        async function saveAudioOffset() {
+            const val = parseFloat(document.getElementById("audio-offset-input").value);
+            if (isNaN(val)) {
+                alert("请输入有效的数字！");
+                return;
+            }
+            try {
+                const res = await fetch("/api/config/audio_offset", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ offset: val })
+                });
+                const d = await res.json();
+                if (d.ok) {
+                    alert("✅ " + (d.msg || "已保存设置"));
+                } else {
+                    alert("❌ 保存失败: " + d.msg);
+                }
+            } catch(e) {
+                alert("网络错误: " + e);
+            }
+        }
+
+        // ── 语音停顿超时设置逻辑 ──────────────────────────────────────────────────
+        async function fetchVadTimeout() {
+            try {
+                const res = await fetch("/api/config/vad_silence");
+                const d = await res.json();
+                if (d.ok) {
+                    document.getElementById("vad-timeout-input").value = d.timeout;
+                }
+            } catch (e) {}
+        }
+
+        async function saveVadTimeout() {
+            const val = parseFloat(document.getElementById("vad-timeout-input").value);
+            if (isNaN(val)) {
+                alert("请输入有效的停顿秒数！");
+                return;
+            }
+            try {
+                const res = await fetch("/api/config/vad_silence", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ timeout: val })
+                });
+                const d = await res.json();
+                if (d.ok) {
+                    alert("✅ " + (d.msg || "已保存设置"));
+                } else {
+                    alert("❌ 保存失败: " + d.msg);
+                }
+            } catch (e) {
+                alert("网络错误: " + e);
+            }
+        }
+
+        // ── 声音激活灵敏度设置逻辑 ────────────────────────────────────────────────
+        async function fetchVadThreshold() {
+            try {
+                const res = await fetch("/api/config/vad_threshold");
+                const d = await res.json();
+                if (d.ok) {
+                    document.getElementById("vad-threshold-input").value = d.threshold;
+                }
+            } catch (e) {}
+        }
+
+        async function saveVadThreshold() {
+            const val = parseFloat(document.getElementById("vad-threshold-input").value);
+            if (isNaN(val)) {
+                alert("请输入有效的灵敏度数值！");
+                return;
+            }
+            try {
+                const res = await fetch("/api/config/vad_threshold", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ threshold: val })
+                });
+                const d = await res.json();
+                if (d.ok) {
+                    alert("✅ " + (d.msg || "已保存设置"));
+                } else {
+                    alert("❌ 保存失败: " + d.msg);
+                }
+            } catch (e) {
+                alert("网络错误: " + e);
+            }
+        }
+
+        // 初始化加载配置
+        fetchAudioOffset();
+        fetchVadTimeout();
+        fetchVadThreshold();
+
+        window.addEventListener("beforeunload", () => {
+            if (currentSampleId) navigator.sendBeacon(`/api/review/unlock/${currentSampleId}`);
+        });
+    </script>
+</body>
+
+</html>

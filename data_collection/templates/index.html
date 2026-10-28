@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多模态情感数据标注系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .tab-active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .tab-inactive {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+
+        .emotion-btn {
+            transition: all 0.15s;
+        }
+
+        .emotion-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #mjpeg-stream {
+            width: 100%;
+            max-height: 360px;
+            object-fit: contain;
+            background: #000;
+            border-radius: 8px;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid #475569;
+            max-width: 480px;
+            width: 90%;
+        }
+
+        video,
+        audio {
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .ring-selected {
+            outline: 3px solid white;
+            outline-offset: 2px;
+        }
+
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 2.5rem;
+            width: 360px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: #e2e8f0;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .login-input:focus {
+            border-color: #3b82f6;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            margin-top: 1rem;
+        }
+
+        .login-btn:hover {
+            background: #2563eb;
+        }
+
+        .login-error {
+            color: #f87171;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-4">
+
+    <!-- 登录遮罩 -->
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="text-center mb-6">
+                <div class="text-4xl mb-2">🎭</div>
+                <h2 class="text-xl font-bold text-blue-400">多模态情感数据标注系统</h2>
+                <p class="text-slate-400 text-sm mt-1">请输入访问密码</p>
+            </div>
+            <input id="login-pwd" type="password" class="login-input" placeholder="密码" autocomplete="current-password"
+                onkeydown="if(event.key==='Enter') doLogin()">
+            <div id="login-error" class="login-error">密码错误，请重试</div>
+            <button class="login-btn" onclick="doLogin()">进入系统</button>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="main-app" style="display:none;">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-blue-400">🎭 多模态情感数据标注系统</h1>
+                    <p class="text-slate-400 text-sm mt-1">录制 · 盲审 · 双重复核验证</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex gap-3" id="stats-bar">
+                        <div class="stat-card rounded-lg px-4 py-2 text-center">
+                            <div class="text-2xl font-bold text-blue-400" id="stat-total">0</div>
+                            <div class="text-xs text-slate-400">总样本</div>
+                        </div>
+                        <div class="stat-card rounded-lg px-4 py-2 text-center">
+                            <div class="text-2xl font-bold text-yellow-400" id="stat-pending">0</div>
+                            <div class="text-xs text-slate-400">待复核</div>
+                        </div>
+                        <div class="stat-card rounded-lg px-4 py-2 text-center">
+                            <div class="text-2xl font-bold text-green-400" id="stat-reviewed">0</div>
+                            <div class="text-xs text-slate-400">已完成</div>
+                        </div>
+                        <div class="stat-card rounded-lg px-4 py-2 text-center">
+                            <div class="text-2xl font-bold text-red-400" id="stat-invalid">0</div>
+                            <div class="text-xs text-slate-400">无效</div>
+                        </div>
+                    </div>
+                    <button onclick="doLogout()"
+                        class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm px-3 py-2 rounded-lg transition-all">退出登录</button>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mb-4">
+                <button onclick="switchTab('record')" id="tab-record"
+                    class="tab-active px-6 py-2 rounded-lg font-medium transition-all">📹 采集录制</button>
+                <button onclick="switchTab('review')" id="tab-review"
+                    class="tab-inactive px-6 py-2 rounded-lg font-medium transition-all">🔍 盲审二次复核</button>
+            </div>
+
+            <!-- TAB 1: 采集录制 -->
+            <div id="panel-record">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="card p-4">
+                        <h2 class="text-lg font-semibold mb-3 text-slate-200">📷 实时预览</h2>
+                        <div class="relative">
+                            <img id="mjpeg-stream" src="/video_feed" alt="摄像头预览"
+                                onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22640%22 height=%22360%22%3E%3Crect fill=%22%23111%22 width=%22640%22 height=%22360%22/%3E%3Ctext fill=%22%23666%22 x=%22320%22 y=%22190%22 text-anchor=%22middle%22 font-size=%2220%22%3E摄像头未连接%3C/text%3E%3C/svg%3E'" />
+
+                            <!-- 右上角轻量角标倒计时，不遮挡画面 -->
+                            <div id="countdown-tag"
+                                class="absolute top-3 right-3 hidden flex items-center gap-2 bg-red-600/90 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg animate-pulse">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-white"></span>
+                                <span>准备录制 <span id="countdown-num">5</span>s</span>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-center gap-3">
+                            <button id="btn-record" onclick="startRecording()"
+                                class="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2">
+                                <span>⏺</span><span id="btn-record-text">开始录制 5 秒</span>
+                            </button>
+                            <span class="text-slate-500 text-sm">Space键</span>
+                        </div>
+                        <div id="lock-warning"
+                            class="hidden mt-2 flex items-center gap-2 text-yellow-400 text-sm bg-yellow-900/30 border border-yellow-700 rounded-lg px-3 py-2">
+                            <span>🔒</span><span id="lock-warning-text">录制设备被占用</span>
+                        </div>
+                        <div id="record-progress-bar" class="hidden mt-2">
+                            <div class="w-full bg-slate-700 rounded-full h-2">
+                                <div id="record-progress-fill" class="bg-blue-500 h-2 rounded-full transition-all"
+                                    style="width:0%"></div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1" id="record-status-text">准备中…</p>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">录制完成后将弹出情绪选择窗口</p>
+                    </div>
+
+                    <div class="card p-4">
+                        <h2 class="text-lg font-semibold mb-3 text-slate-200">🎬 最新录制回放</h2>
+                        <div id="playback-area" class="flex items-center justify-center min-h-48 text-slate-500">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">📭</div>
+                                <div>尚未录制样本</div>
+                            </div>
+                        </div>
+                        <div id="latest-info" class="mt-3 hidden">
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="text-xs bg-slate-700 px-2 py-1 rounded font-mono" id="latest-id">-</span>
+                                <span class="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded"
+                                    id="latest-initial">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: 二次复核 (盲审) -->
+            <div id="panel-review" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="card p-4 lg:col-span-1">
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-lg font-semibold text-slate-200">📋 待审样本</h2>
+                            <button onclick="loadPendingList()"
+                                class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition-all">刷新打乱</button>
+                        </div>
+                        <div id="pending-list" class="space-y-2 max-h-96 overflow-y-auto">
+                            <div class="text-slate-500 text-sm text-center py-4">点击刷新加载</div>
+                        </div>
+                        <button onclick="loadNextPending()"
+                            class="mt-3 w-full bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm transition-all">
+                            加载下一个待审样本 →
+                        </button>
+                    </div>
+
+                    <div class="card p-4 lg:col-span-2">
+                        <h2 class="text-lg font-semibold mb-3 text-slate-200">🔍 盲审复核面板</h2>
+                        <div id="review-empty" class="flex items-center justify-center min-h-64 text-slate-500">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">👈</div>
+                                <div>请从左侧选择样本</div>
+                            </div>
+                        </div>
+                        <div id="review-content" class="hidden">
+                            <div class="mb-2 flex gap-2 items-center justify-between flex-wrap">
+                                <span class="font-mono text-sm text-blue-400" id="review-sample-id">-</span>
+                                <span class="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded font-semibold"
+                                    id="review-count-badge">复核进度: 0/2</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-1">纯视频</p>
+                                    <video id="review-video" controls class="w-full" style="max-height:180px;"></video>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-1">纯音频</p>
+                                    <audio id="review-audio" controls class="w-full mt-8"></audio>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-1">合成有声视频</p>
+                                    <video id="review-merged" controls class="w-full" style="max-height:180px;"></video>
+                                </div>
+                            </div>
+                            <p class="text-sm text-slate-300 mb-2">独立判定复核情绪（数字键 1-7）：</p>
+                            <div class="grid grid-cols-4 gap-2 mb-3" id="review-emotion-grid"></div>
+                            <label class="flex items-center gap-2 cursor-pointer mb-4">
+                                <input type="checkbox" id="review-invalid" class="w-4 h-4 accent-red-500">
+                                <span class="text-sm text-red-400">标记为无效数据（黑屏/杂音等）</span>
+                            </label>
+                            <button onclick="submitReview()"
+                                class="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-lg font-semibold transition-all">
+                                ✅ 提交复核判定
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 情绪选择弹窗 -->
+    <div id="emotion-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h3 class="text-xl font-bold mb-1 text-slate-100">请选择录制时的情绪</h3>
+            <p class="text-sm text-slate-400 mb-4">数字键 1-7 快速选择</p>
+            <div class="grid grid-cols-2 gap-3" id="modal-emotion-grid"></div>
+            <div class="mt-4 pt-3 border-t border-slate-700 flex gap-2">
+                <button onclick="selectInitialEmotion(null, true)"
+                    class="w-full py-2.5 rounded-lg border border-red-700/80 text-red-400 text-sm font-semibold hover:bg-red-900/30">
+                    ⛔ 标记此数据无效
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+        <div id="toast-inner" class="px-5 py-3 rounded-lg font-medium shadow-xl text-sm"></div>
+    </div>
+
+    <script>
+        // 登录逻辑
+        async function doLogin() {
+            const pwd = document.getElementById('login-pwd').value;
+            const errEl = document.getElementById('login-error');
+            errEl.style.display = 'none';
+            try {
+                const r = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const d = await r.json();
+                if (d.ok) {
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('main-app').style.display = '';
+                    refreshStats();
+                } else {
+                    errEl.style.display = 'block';
+                    document.getElementById('login-pwd').value = '';
+                    document.getElementById('login-pwd').focus();
+                }
+            } catch (e) {
+                errEl.textContent = '服务器连接失败，请刷新重试';
+                errEl.style.display = 'block';
+            }
+        }
+
+        async function doLogout() {
+            await fetch('/api/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        (async function checkAuth() {
+            try {
+                const r = await fetch('/api/stats');
+                if (r.ok) {
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('main-app').style.display = '';
+                }
+            } catch (e) { }
+        })();
+
+        // 主界面逻辑
+        const EMOTIONS = [
+            { key: 'happy', label: '😄 开心', color: 'bg-yellow-500 hover:bg-yellow-400' },
+            { key: 'sad', label: '😢 悲伤', color: 'bg-blue-600 hover:bg-blue-500' },
+            { key: 'angry', label: '😡 愤怒', color: 'bg-red-600 hover:bg-red-500' },
+            { key: 'fear', label: '😨 恐惧', color: 'bg-purple-600 hover:bg-purple-500' },
+            { key: 'disgust', label: '🤢 厌恶', color: 'bg-green-700 hover:bg-green-600' },
+            { key: 'surprise', label: '😲 惊讶', color: 'bg-orange-500 hover:bg-orange-400' },
+            { key: 'neutral', label: '😐 中性', color: 'bg-slate-600 hover:bg-slate-500' },
+        ];
+
+        let currentTab = 'record';
+        let isRecording = false;
+        let pendingFolderId = null;
+        let currentReviewSample = null;
+        let reviewSelectedEmotion = null;
+        let pendingList = [];
+        let pendingIndex = -1;
+        let pollTimer = null;
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('panel-record').classList.toggle('hidden', tab !== 'record');
+            document.getElementById('panel-review').classList.toggle('hidden', tab !== 'review');
+            document.getElementById('tab-record').className = tab === 'record'
+                ? 'tab-active px-6 py-2 rounded-lg font-medium transition-all'
+                : 'tab-inactive px-6 py-2 rounded-lg font-medium transition-all';
+            document.getElementById('tab-review').className = tab === 'review'
+                ? 'tab-active px-6 py-2 rounded-lg font-medium transition-all'
+                : 'tab-inactive px-6 py-2 rounded-lg font-medium transition-all';
+            if (tab === 'review') loadPendingList();
+        }
+
+        async function refreshStats() {
+            try {
+                const r = await fetch('/api/stats');
+                if (r.status === 401) { location.reload(); return; }
+                const d = await r.json();
+                document.getElementById('stat-total').textContent = d.total;
+                document.getElementById('stat-pending').textContent = d.pending;
+                document.getElementById('stat-reviewed').textContent = d.reviewed;
+                document.getElementById('stat-invalid').textContent = d.invalid;
+            } catch (e) { }
+        }
+
+        async function startRecording() {
+            if (isRecording) return;
+            isRecording = true;
+
+            const btn = document.getElementById('btn-record');
+            const lockWarn = document.getElementById('lock-warning');
+            btn.disabled = true;
+            btn.classList.replace('bg-blue-600', 'bg-slate-600');
+            lockWarn.classList.add('hidden');
+
+            const countTag = document.getElementById('countdown-tag');
+            const countNum = document.getElementById('countdown-num');
+            const progressBar = document.getElementById('record-progress-bar');
+            countTag.classList.remove('hidden');
+            progressBar.classList.remove('hidden');
+
+            for (let i = 5; i >= 1; i--) {
+                countNum.textContent = i;
+                await sleep(1000);
+            }
+            countTag.classList.add('hidden');
+
+            let startResp;
+            try {
+                const r = await fetch('/api/record/start', { method: 'POST' });
+                if (r.status === 401) { location.reload(); return; }
+                startResp = await r.json();
+            } catch (e) {
+                showToast('❌ 启动录制失败: ' + e.message, 'red');
+                resetRecordBtn(countTag, progressBar);
+                return;
+            }
+
+            if (!startResp.ok) {
+                if (startResp.msg && startResp.msg.includes('占用')) {
+                    document.getElementById('lock-warning-text').textContent = startResp.msg;
+                    lockWarn.classList.remove('hidden');
+                }
+                showToast('❌ ' + (startResp.msg || '录制失败'), 'red');
+                resetRecordBtn(countTag, progressBar);
+                return;
+            }
+
+            pollTimer = setInterval(async () => {
+                try {
+                    const r = await fetch('/api/record/status');
+                    if (r.status === 401) { clearInterval(pollTimer); location.reload(); return; }
+                    const st = await r.json();
+
+                    document.getElementById('record-progress-fill').style.width = st.progress + '%';
+                    document.getElementById('record-status-text').textContent = st.message || '';
+
+                    if (st.status === 'done') {
+                        clearInterval(pollTimer);
+                        pendingFolderId = Path.basename(st.folder);
+                        showToast('✅ 录制完成，请选择情绪', 'green');
+                        showEmotionModal();
+                    } else if (st.status === 'error') {
+                        clearInterval(pollTimer);
+                        showToast('❌ 录制出错: ' + (st.message || ''), 'red');
+                        resetRecordBtn(countTag, progressBar);
+                    }
+                } catch (e) { }
+            }, 400);
+        }
+
+        const Path = { basename: p => p ? p.replace(/\\/g, '/').split('/').pop() : '' };
+
+        function resetRecordBtn(countTag, progressBar) {
+            isRecording = false;
+            clearInterval(pollTimer);
+            if (countTag) countTag.classList.add('hidden');
+            if (progressBar) progressBar.classList.add('hidden');
+            const btn = document.getElementById('btn-record');
+            btn.disabled = false;
+            btn.classList.replace('bg-slate-600', 'bg-blue-600');
+            document.getElementById('btn-record-text').textContent = '开始录制 5 秒';
+            document.getElementById('record-progress-fill').style.width = '0%';
+        }
+
+        function buildEmotionGrid(containerId, onSelect) {
+            const grid = document.getElementById(containerId);
+            grid.innerHTML = '';
+            EMOTIONS.forEach((e, i) => {
+                const btn = document.createElement('button');
+                btn.className = `emotion-btn ${e.color} text-white px-3 py-3 rounded-lg font-medium flex items-center gap-2`;
+                btn.innerHTML = `<span class="text-slate-300 text-xs w-4">${i + 1}</span>${e.label}`;
+                btn.onclick = () => onSelect(e.key, false);
+                grid.appendChild(btn);
+            });
+        }
+
+        function showEmotionModal() {
+            buildEmotionGrid('modal-emotion-grid', selectInitialEmotion);
+            document.getElementById('emotion-modal').classList.remove('hidden');
+        }
+
+        async function selectInitialEmotion(emotion, isInvalid = false) {
+            document.getElementById('emotion-modal').classList.add('hidden');
+            if (!pendingFolderId) { resetRecordBtn(null, document.getElementById('record-progress-bar')); return; }
+
+            try {
+                const r = await fetch('/api/record/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emotion, is_invalid: isInvalid })
+                });
+                const d = await r.json();
+                if (d.ok) {
+                    showToast(isInvalid ? '🗑 已标记为无效样本' : '💾 已保存标注！', 'blue');
+                    showLatestPlayback(d.id, isInvalid ? '已作废' : emotion);
+                    refreshStats();
+                } else {
+                    showToast('❌ 保存失败: ' + (d.msg || ''), 'red');
+                }
+            } catch (e) {
+                showToast('❌ 提交失败', 'red');
+            }
+            pendingFolderId = null;
+            resetRecordBtn(null, document.getElementById('record-progress-bar'));
+        }
+
+        function showLatestPlayback(sampleId, initialEmotion) {
+            const area = document.getElementById('playback-area');
+            const ts = Date.now();
+            area.innerHTML = `
+    <video controls class="w-full" style="max-height:280px;">
+      <source src="/data/${sampleId}/merged.mp4?t=${ts}" type="video/mp4">
+      <source src="/data/${sampleId}/video.mp4?t=${ts}" type="video/mp4">
+      视频不可用
+    </video>`;
+            document.getElementById('latest-info').classList.remove('hidden');
+            document.getElementById('latest-id').textContent = sampleId;
+            document.getElementById('latest-initial').textContent = '标注: ' + initialEmotion;
+        }
+
+        // 复核模块 (盲审 + 打乱)
+        async function loadPendingList() {
+            try {
+                const r = await fetch('/api/samples');
+                if (r.status === 401) { location.reload(); return; }
+                const all = await r.json();
+                pendingList = all.filter(s => !s.is_reviewed && !s.is_invalid);
+
+                // 随机打乱列表，避免同一样本连续被同一个人复核
+                pendingList.sort(() => Math.random() - 0.5);
+                pendingIndex = -1;
+
+                const el = document.getElementById('pending-list');
+                if (pendingList.length === 0) {
+                    el.innerHTML = '<div class="text-slate-500 text-sm text-center py-4">暂无待复核样本 🎉</div>';
+                    return;
+                }
+                el.innerHTML = pendingList.map((s, i) =>
+                    `<div onclick="loadReviewSample('${s.id}', ${i})"
+        class="cursor-pointer p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all border border-slate-700 flex justify-between items-center">
+        <span class="font-mono text-xs text-slate-300">${s.id}</span>
+        <span class="text-xs px-2 py-0.5 rounded bg-yellow-900 text-yellow-300">审核中 (${s.review_count || 0}/2)</span>
+      </div>`
+                ).join('');
+            } catch (e) {
+                showToast('加载失败', 'red');
+            }
+        }
+
+        function loadNextPending() {
+            if (pendingList.length === 0) { loadPendingList(); return; }
+            pendingIndex = (pendingIndex + 1) % pendingList.length;
+            loadReviewSample(pendingList[pendingIndex].id, pendingIndex);
+        }
+
+        async function loadReviewSample(sampleId, idx) {
+            pendingIndex = idx;
+            try {
+                const r = await fetch(`/api/samples/${sampleId}`);
+                const d = await r.json();
+                currentReviewSample = d;
+                reviewSelectedEmotion = null; // 盲审重置
+
+                document.getElementById('review-empty').classList.add('hidden');
+                document.getElementById('review-content').classList.remove('hidden');
+                document.getElementById('review-sample-id').textContent = d.id;
+                document.getElementById('review-count-badge').textContent = `复核进度: ${d.review_count || 0}/2`;
+
+                const ts = Date.now();
+                document.getElementById('review-video').src = `/data/${d.id}/video.mp4?t=${ts}`;
+                document.getElementById('review-audio').src = `/data/${d.id}/audio.wav?t=${ts}`;
+                document.getElementById('review-merged').src = `/data/${d.id}/merged.mp4?t=${ts}`;
+                document.getElementById('review-invalid').checked = false;
+
+                buildReviewEmotionGrid();
+            } catch (e) {
+                showToast('加载样本失败', 'red');
+            }
+        }
+
+        function buildReviewEmotionGrid() {
+            const grid = document.getElementById('review-emotion-grid');
+            grid.innerHTML = '';
+            EMOTIONS.forEach((e, i) => {
+                const btn = document.createElement('button');
+                const sel = reviewSelectedEmotion === e.key;
+                btn.id = `rev-emo-${e.key}`;
+                btn.className = `emotion-btn ${e.color} text-white px-2 py-2 rounded-lg text-sm flex items-center gap-1 ${sel ? 'ring-selected' : ''}`;
+                btn.innerHTML = `<span class="text-slate-300 text-xs w-4">${i + 1}</span>${e.label}`;
+                btn.onclick = () => { reviewSelectedEmotion = e.key; buildReviewEmotionGrid(); };
+                grid.appendChild(btn);
+            });
+        }
+
+        async function submitReview() {
+            if (!currentReviewSample) return;
+            const isInvalid = document.getElementById('review-invalid').checked;
+            if (!isInvalid && !reviewSelectedEmotion) { showToast('请先选择情绪', 'yellow'); return; }
+
+            try {
+                const r = await fetch(`/api/samples/${currentReviewSample.id}/review`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ review_emotion: reviewSelectedEmotion, is_invalid: isInvalid })
+                });
+                const d = await r.json();
+                if (d.ok) {
+                    showToast('✅ 复核已提交', 'green');
+                    refreshStats();
+
+                    // 若完成 2 次或作废，移出列表；若仅 1 次，移到末尾以待二次复核
+                    if (d.is_reviewed || isInvalid) {
+                        pendingList = pendingList.filter(s => s.id !== currentReviewSample.id);
+                    } else {
+                        const item = pendingList.find(s => s.id === currentReviewSample.id);
+                        pendingList = pendingList.filter(s => s.id !== currentReviewSample.id);
+                        if (item) {
+                            item.review_count = d.review_count;
+                            pendingList.push(item);
+                        }
+                    }
+
+                    if (pendingList.length > 0) {
+                        pendingIndex = 0;
+                        loadReviewSample(pendingList[0].id, 0);
+                    } else {
+                        currentReviewSample = null;
+                        document.getElementById('review-content').classList.add('hidden');
+                        document.getElementById('review-empty').classList.remove('hidden');
+                        loadPendingList();
+                    }
+                } else {
+                    showToast('❌ 提交失败: ' + (d.msg || ''), 'red');
+                }
+            } catch (e) {
+                showToast('❌ 网络错误', 'red');
+            }
+        }
+
+        // 快捷键
+        document.addEventListener('keydown', e => {
+            if (document.getElementById('login-screen').style.display !== 'none') return;
+
+            const key = e.key;
+            if (key === ' ' && currentTab === 'record' && !e.target.matches('input,textarea,button')) {
+                e.preventDefault();
+                startRecording();
+            }
+            if (/^[1-7]$/.test(key)) {
+                const emo = EMOTIONS[parseInt(key) - 1].key;
+                if (!document.getElementById('emotion-modal').classList.contains('hidden')) {
+                    selectInitialEmotion(emo);
+                } else if (currentTab === 'review' && currentReviewSample) {
+                    reviewSelectedEmotion = emo;
+                    buildReviewEmotionGrid();
+                }
+            }
+            if (key === 'Escape') {
+                document.getElementById('emotion-modal').classList.add('hidden');
+            }
+            if (key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+                doLogin();
+            }
+        });
+
+        let toastTimer = null;
+        function showToast(msg, color = 'green') {
+            const colors = { green: 'bg-green-700', red: 'bg-red-700', blue: 'bg-blue-700', yellow: 'bg-yellow-700' };
+            const toast = document.getElementById('toast');
+            const inner = document.getElementById('toast-inner');
+            inner.className = `px-5 py-3 rounded-lg font-medium shadow-xl text-sm ${colors[color] || colors.green}`;
+            inner.textContent = msg;
+            toast.classList.remove('hidden');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+        setInterval(refreshStats, 15000);
+    </script>
+</body>
+
+</html>

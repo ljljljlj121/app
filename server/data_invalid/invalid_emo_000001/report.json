@@ -1,0 +1,28 @@
+{
+  "id": "data_emo_000005",
+  "created_at": "2026-09-07T15:40:01",
+  "folder_path": "data_emo/data_emo_000005",
+  "board_id": "1020",
+  "initial_emotion": "fear",
+  "model_emotion": null,
+  "review_emotion": "neutral",
+  "review_count": 2,
+  "reviews": [
+    {
+      "reviewer": "1020",
+      "emotion": "neutral",
+      "is_invalid": false,
+      "time": "2026-09-07T15:40:10"
+    },
+    {
+      "reviewer": "1020",
+      "emotion": "neutral",
+      "is_invalid": false,
+      "time": "2026-09-07T16:00:11"
+    }
+  ],
+  "is_invalid": false,
+  "is_reviewed": true,
+  "drop_reason": "label_conflict: ['fear', 'neutral', 'neutral']",
+  "original_id": "data_emo_000005"
+}

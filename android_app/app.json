@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "情感数据采集",
+    "slug": "robot-prize-data-collection",
+    "scheme": "robotprizedatacollection",
+    "version": "1.0.7",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "android": {
+      "versionCode": 8,
+      "package": "com.robotprize.datacollection",
+      "usesCleartextTraffic": true,
+      "permissions": ["android.permission.RECORD_AUDIO"],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "用于录制表情和音视频采集样本。",
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-secure-store"
+    ]
+  }
+}
