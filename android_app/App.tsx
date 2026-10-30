@@ -641,7 +641,7 @@ function AppContent() {
         </Pressable>
         <Pressable disabled={busy || recording} onPress={() => { setCameraReady(false); setTab("emotion"); }}
           style={[styles.tab, landscape && styles.tabLandscape, (busy || recording) && { opacity: 0.4 }]}>
-          <Text style={styles.tabText}>实时情绪识别（边端）</Text>
+          <Text style={styles.tabText}>实时情绪识别</Text>
         </Pressable>
       </View>
 

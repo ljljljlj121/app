@@ -24,13 +24,16 @@ export function EmotionTimeline({ frames, nowMs, paused }: {
   const follow = useRef(true);
   const [following, setFollowing] = useState(true);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const selected = frames.find((frame) => frameKey(frame) === selectedKey) ?? frames[frames.length - 1];
-  const latest = frames[frames.length - 1];
+  const [frozenFrames, setFrozenFrames] = useState<EmotionFrame[] | null>(null);
+  const displayFrames = frozenFrames ?? frames;
+  const selected = displayFrames.find((frame) => frameKey(frame) === selectedKey) ?? displayFrames[displayFrames.length - 1];
+  const latest = displayFrames[displayFrames.length - 1];
   const session = latest?.sessionId;
 
   const followLatest = () => {
     follow.current = true;
     setFollowing(true);
+    setFrozenFrames(null);
     setSelectedKey(null);
     list.current?.scrollToEnd({ animated: false });
   };
@@ -39,6 +42,7 @@ export function EmotionTimeline({ frames, nowMs, paused }: {
     if (follow.current) list.current?.scrollToEnd({ animated: false });
   };
   const inspect = () => {
+    if (!frozenFrames) setFrozenFrames(frames);
     follow.current = false;
     setFollowing(false);
   };
@@ -54,14 +58,15 @@ export function EmotionTimeline({ frames, nowMs, paused }: {
           </View>
         ))}
       </View>
-      <FlatList ref={list} horizontal data={frames} style={s.strip}
+      <FlatList ref={list} horizontal data={displayFrames} style={s.strip}
         contentContainerStyle={s.stripContent} showsHorizontalScrollIndicator
+        nestedScrollEnabled directionalLockEnabled
         keyExtractor={frameKey} extraData={selected && frameKey(selected)}
         initialNumToRender={12} maxToRenderPerBatch={16} windowSize={5}
         getItemLayout={(_, index) => ({ length: TILE_SIZE, offset: 10 + TILE_STEP * index, index })}
         ItemSeparatorComponent={() => <View style={s.separator} />}
         ListFooterComponent={<View style={s.endPadding} />}
-        onScrollBeginDrag={inspect} onContentSizeChange={scrollToLatest} onLayout={scrollToLatest}
+        onTouchStart={inspect} onScrollBeginDrag={inspect} onContentSizeChange={scrollToLatest} onLayout={scrollToLatest}
         ListEmptyComponent={<View style={s.empty}><Text style={s.muted}>等待分析帧，tag 将逐格显示</Text></View>}
         renderItem={({ item }) => {
           const color = COLORS[item.tag ?? "invalid"];
@@ -81,7 +86,7 @@ export function EmotionTimeline({ frames, nowMs, paused }: {
           );
         }} />
       <View style={s.axis}>
-        <Text style={s.muted}>{frames[0] ? `${age(frames[0])} 秒前` : "较早"} → 最新</Text>
+        <Text style={s.muted}>{displayFrames[0] ? `${age(displayFrames[0])} 秒前` : "较早"} → 最新</Text>
         <Pressable accessibilityRole="button" onPress={followLatest} hitSlop={6}>
           <Text style={s.follow}>
             {paused ? (following ? "已暂停 · 窗口保留" : "回到最新") : (following ? "正在跟随最新" : "回到最新 →")}

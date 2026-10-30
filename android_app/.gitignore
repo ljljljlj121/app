@@ -8,3 +8,7 @@ modules/edge-emotion/android/.gradle/
 modules/edge-emotion/android/src/androidTest/assets/
 modules/edge-emotion/android/src/test/resources/
 delivery/
+# Large runtime weights are provisioned locally or by prepare_unified_models.py;
+# keep them out of Git LFS and ordinary Git commits.
+modules/edge-emotion/android/src/main/assets/offline_asr/model.int8.onnx
+modules/edge-emotion/android/src/main/assets/text_emotion/model.onnx

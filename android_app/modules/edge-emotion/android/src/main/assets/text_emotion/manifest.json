@@ -1,0 +1,226 @@
+{
+  "run_id": "sfemo_DT0_T02_len64_s42",
+  "model": "T02",
+  "trained_for_emotion": true,
+  "max_length": 64,
+  "temperature": 2.0566793434560156,
+  "parameter_count": 38479107,
+  "checkpoint_sha256": "7f6e9fcf9ee5c538cad4c37152be9d8ec86c192c710028cc4aaf23ca1d257032",
+  "calibration_sha256": "64c58cf6fd41dcf226e1cd84de68bea0a6415639884107a904bd2bc114dce8b2",
+  "frozen_sha256": "b6e9063b18c9438b404c92fc1a4f752d188d6c15d4146dee20e18b378294d40f",
+  "onnx_sha256": "600ec556f45d3a6fe3d97d831007bb18fcf4fe1d4c87bad162040a19944d0b1f",
+  "onnx_bytes": 153953157,
+  "parity": [
+    {
+      "logits_max_abs": 1.3113021850585938e-06,
+      "probabilities_max_abs": 1.5513462847671633e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 3.0994415283203125e-06,
+      "probabilities_max_abs": 2.8548087838142777e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.115964889526367e-06,
+      "probabilities_max_abs": 4.845245713536173e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.1457672119140625e-06,
+      "probabilities_max_abs": 8.607918644543133e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.0265579223632812e-06,
+      "probabilities_max_abs": 3.16311128178981e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 1.2516975402832031e-06,
+      "probabilities_max_abs": 6.417613596793048e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 4.932284355163574e-06,
+      "probabilities_max_abs": 1.386328194408204e-06,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.4437904357910156e-06,
+      "probabilities_max_abs": 3.2082043366354895e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.562999725341797e-06,
+      "probabilities_max_abs": 2.2142067335195748e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 3.5762786865234375e-07,
+      "probabilities_max_abs": 1.2310812025351225e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 4.76837158203125e-07,
+      "probabilities_max_abs": 7.532855117453607e-09,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.0265579223632812e-06,
+      "probabilities_max_abs": 8.439431475881776e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.1457672119140625e-06,
+      "probabilities_max_abs": 1.3347378177708258e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 7.152557373046875e-07,
+      "probabilities_max_abs": 5.920156032068746e-09,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 1.3113021850585938e-06,
+      "probabilities_max_abs": 6.851770127658252e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 1.0728836059570312e-06,
+      "probabilities_max_abs": 1.2465973935407715e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.2649765014648438e-06,
+      "probabilities_max_abs": 2.9574222526473903e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 1.430511474609375e-06,
+      "probabilities_max_abs": 9.206469431255471e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 9.5367431640625e-07,
+      "probabilities_max_abs": 4.406159215264438e-09,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 1.9669532775878906e-06,
+      "probabilities_max_abs": 1.1229928109646181e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 3.2186508178710938e-06,
+      "probabilities_max_abs": 2.3080291277136067e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 7.152557373046875e-07,
+      "probabilities_max_abs": 3.4394906589518826e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 9.5367431640625e-07,
+      "probabilities_max_abs": 4.176124838647932e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 5.0067901611328125e-06,
+      "probabilities_max_abs": 6.941867835008608e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 1.3113021850585938e-06,
+      "probabilities_max_abs": 7.28321146361427e-09,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.384185791015625e-06,
+      "probabilities_max_abs": 4.93177104397835e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.6226043701171875e-06,
+      "probabilities_max_abs": 1.026073633503266e-06,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.6226043701171875e-06,
+      "probabilities_max_abs": 8.168339959979676e-08,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 3.814697265625e-06,
+      "probabilities_max_abs": 9.9442861656307e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    },
+    {
+      "logits_max_abs": 2.3245811462402344e-06,
+      "probabilities_max_abs": 5.300349583681196e-07,
+      "atol": 0.0001,
+      "rtol": 0.001,
+      "passed": true
+    }
+  ],
+  "robot_tested": false
+}

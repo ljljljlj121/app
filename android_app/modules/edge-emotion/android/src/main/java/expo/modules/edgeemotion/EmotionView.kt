@@ -41,6 +41,13 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
   // does not perform that child's subsequent Android measure/layout by default.
   override val shouldUseAndroidLayout = true
   val onFrames by EventDispatcher<Map<String, Any?>>()
+  val onSpeech by EventDispatcher<Map<String, Any?>>()
+  private val speech = SpeechCoordinator(context) { onSpeech(it) }
+  var speechConfig = ""
+    set(value) {
+      field = value
+      runCatching { speech.settings = SpeechSettings.parse(value) }
+    }
   var paused = false
   var front = true
   var acknowledged = ""
@@ -214,6 +221,10 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
           .getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE) ==
           CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME
         state = "waiting"
+        // CameraX is now bound; start the shared microphone monitor immediately.
+        // Previously this was only reached from the stale-frame ticker, so a
+        // healthy camera could remain visible while speech stayed stopped.
+        speech.start()
         cameraInfo = camera.cameraInfo
         cameraObserver = Observer { cameraState ->
           if (token != generation || !running) return@Observer
@@ -226,6 +237,7 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
             overlay.box = null
             overlay.invalidate()
             if (error.type == CameraState.ErrorType.RECOVERABLE) {
+              speech.stop("camera_interrupted")
               // CameraX owns recovery for camera-in-use/disconnection errors.
               detail = message
               state = "camera_recovering"
@@ -236,6 +248,7 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
           } else if (state == "camera_recovering" && cameraState.type == CameraState.Type.OPEN) {
             detail = null
             state = "waiting"
+            speech.start()
           }
         }
         camera.cameraInfo.cameraState.observe(owner!!, cameraObserver!!)
@@ -299,6 +312,7 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
       }
       bitmap = oriented
       if (raw !== oriented) raw.recycle()
+      if (token == generation && !disposed) speech.frame(oriented, start)
       record["imageWidth"] = oriented.width
       record["imageHeight"] = oriented.height
       val detectStart = SystemClock.elapsedRealtime()
@@ -357,6 +371,7 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
     record["completedAtMs"] = end.toDouble()
     record["processingMs"] = (end - start).toDouble()
     record["captureToResultMs"] = capturedMs?.let { end - it }
+    if (token == generation && !disposed) speech.visual(record)
     val resultBox = box?.let { RectF(it) }
     val sourceTransform = transform
     main.post {
@@ -410,6 +425,7 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
   }
 
   private fun stop(reason: String) {
+    speech.stop(if (reason == "paused") "user_cancelled" else reason)
     running = false
     freezeAt = SystemClock.elapsedRealtime()
     state = reason
@@ -442,6 +458,7 @@ class EmotionView(context: Context, appContext: AppContext) : ExpoView(context, 
     history.clear()
     worker.execute { engine?.close(); engine = null }
     worker.shutdown()
+    speech.close()
   }
 
   private class FaceOverlay(context: Context) : View(context) {

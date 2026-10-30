@@ -1,0 +1,22 @@
+{
+  "run_id": "sfemo_DT0_T02_len64_s42",
+  "branch": "text",
+  "sources": "configs/sources.yaml",
+  "manifest": "manifests/texts.jsonl",
+  "seed": 42,
+  "model": "T02",
+  "pretrained": "models/rbt3",
+  "revision": "0aa0527ff4170f29e1dfd3eb6ef60dc67e1bf75c",
+  "max_length": 64,
+  "loss": "hard_ce",
+  "device": "cuda",
+  "epochs": 10,
+  "batch_size": 16,
+  "learning_rate": 2e-05,
+  "weight_decay": 0.01,
+  "warmup_epochs": 1,
+  "patience": 3,
+  "num_workers": 0,
+  "amp": false,
+  "select_metric": "macro_f1"
+}

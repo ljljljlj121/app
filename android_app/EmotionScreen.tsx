@@ -1,26 +1,34 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View,
+  AppState, BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View,
   useWindowDimensions, type NativeSyntheticEvent, type ViewProps,
 } from "react-native";
 import { requireNativeViewManager } from "expo-modules-core";
-import { useCameraPermissions } from "expo-camera";
+import { useCameraPermissions, useMicrophonePermissions } from "expo-camera";
 import {
   appendFrames, visibleFrames, TAG_LABELS, STATUS_LABELS,
   type EmotionBatch, type EmotionFrame,
 } from "./emotionHistory";
 import { EmotionTimeline } from "./EmotionTimeline";
+import { SpeechResults, SpeechSettings, loadSpeechConfig, defaultSpeechConfig, type SpeechBatch, type SpeechConfig } from "./SpeechResults";
 
 type NativeProps = ViewProps & {
   paused: boolean;
   front: boolean;
   acknowledged: string;
+  speechConfig: string;
+  onSpeech: (event: NativeSyntheticEvent<SpeechBatch>) => void;
   onFrames: (event: NativeSyntheticEvent<EmotionBatch>) => void;
 };
 const NativeEmotionView = requireNativeViewManager<NativeProps>("EdgeEmotion");
 
 export function EmotionScreen({ onBack }: { onBack: () => void }) {
   const [permission, requestPermission] = useCameraPermissions();
+  const [microphone, requestMicrophone] = useMicrophonePermissions();
+  const [speech, setSpeech] = useState<SpeechBatch | null>(null);
+  const [config, setConfig] = useState<SpeechConfig>(defaultSpeechConfig);
+  const [configReady, setConfigReady] = useState(false);
+  const [foreground, setForeground] = useState(AppState.currentState === "active");
   const [paused, setPaused] = useState(false);
   const [front, setFront] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -31,6 +39,13 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
   const historyRef = useRef<EmotionFrame[]>([]);
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
+  useEffect(() => {
+    let alive = true;
+    void loadSpeechConfig().then(value => { if (alive) setConfig(value); })
+      .catch(() => undefined).finally(() => { if (alive) setConfigReady(true); });
+    const listener = AppState.addEventListener("change", value => setForeground(value === "active"));
+    return () => { alive = false; listener.remove(); };
+  }, []);
   useEffect(() => {
     // Allow the collection CameraView teardown to commit before acquiring CameraX.
     const timer = setTimeout(() => setMounted(true), 250);
@@ -48,6 +63,7 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
     historyRef.current = [];
     setHistory([]);
     setBatch(null);
+    setSpeech(null);
     setFront((old) => !old);
     // A lens switch while paused also clears the frozen native window by remounting.
     setMounted(false);
@@ -65,14 +81,26 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
       <View style={s.toolbar}>
         <Pressable accessibilityRole="button" onPress={onBack} style={s.button}><Text style={s.buttonText}>返回</Text></Pressable>
         <View style={s.heading}>
-          <Text style={s.title}>实时情绪识别（边端）</Text>
-          <Text style={s.muted}>本机单人脸 · 不保存、不上传画面</Text>
+          <Text style={s.title}>实时情绪识别</Text>
+          <Text style={s.muted}>本机表情／离线转写 · 讲话片段暂存并上传云端，处理后删除</Text>
         </View>
+      </View>
+      <View style={s.permissionStatus}>
+        <Text style={permission?.granted ? s.permissionOk : s.permissionWarn}>
+          {permission?.granted ? "摄像头已授权" : "摄像头未授权"}
+        </Text>
+        <Text style={microphone?.granted ? s.permissionOk : s.permissionWarn}>
+          {microphone?.granted ? "麦克风已授权" : "麦克风未授权"}
+        </Text>
+        <Text style={s.permissionState}>
+          {speech?.state ? (speech?.state === "listening" ? "正在监听语音" : `语音状态：${speech.state}`) : "尚未启动语音监听"}
+        </Text>
       </View>
       <View style={[s.body, landscape && s.landscape]}>
         <View style={[s.camera, landscape && s.cameraLandscape]}>
-          {permission?.granted && mounted ? (
-            <NativeEmotionView key={`${front}:${retry}`} style={StyleSheet.absoluteFill} paused={paused} front={front}
+          {permission?.granted && microphone?.granted && mounted && configReady ? (
+            <NativeEmotionView key={`${front}:${retry}`} style={StyleSheet.absoluteFill} paused={paused || !foreground} front={front}
+              speechConfig={JSON.stringify(config)} onSpeech={({ nativeEvent }) => setSpeech(nativeEvent)}
               acknowledged={`${batch?.sessionId ?? ""}:${history[history.length - 1]?.frameId ?? 0}`}
               onFrames={({ nativeEvent }) => {
                 historyRef.current = appendFrames(historyRef.current, nativeEvent);
@@ -81,14 +109,20 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
               }} />
           ) : (
             <View style={s.permission}>
-              <Text style={s.text}>{permission?.granted ? "正在切换摄像头…" : "需要摄像头权限；画面仅用于本地分析"}</Text>
-              {!permission?.granted && <Pressable style={s.button} onPress={() => {
-                if (permission?.canAskAgain === false) void Linking.openSettings();
-                else void requestPermission();
-              }}><Text style={s.buttonText}>{permission?.canAskAgain === false ? "打开系统设置" : "授权摄像头"}</Text></Pressable>}
+              <Text style={s.text}>{permission?.granted && microphone?.granted ? "正在准备摄像头和麦克风…" : "需要摄像头与麦克风权限；讲话片段将暂存并上传云端"}</Text>
+              {(!permission?.granted || !microphone?.granted) && <Pressable style={s.button} onPress={() => {
+                void (async () => {
+                  if (permission?.canAskAgain === false || microphone?.canAskAgain === false) { await Linking.openSettings(); return; }
+                  if (!permission?.granted) await requestPermission();
+                  if (!microphone?.granted) await requestMicrophone();
+                })();
+              }}><Text style={s.buttonText}>授权摄像头和麦克风</Text></Pressable>}
             </View>
           )}
           <View style={s.badge} pointerEvents="none"><Text style={s.text}>{STATUS_LABELS[state] ?? state}</Text></View>
+          {!paused && foreground && speech?.recordingId && <View style={s.cloudBadge} pointerEvents="none">
+            <Text style={s.text}>云端：录制中 · #{speech.recordingId}</Text>
+          </View>}
           <View style={s.prediction} pointerEvents="none">
             <Text style={s.tag}>{current?.tag ? `${TAG_LABELS[current.tag]} / ${current.tag}` : "—"}</Text>
             <Text style={s.text}>
@@ -125,6 +159,9 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
             frames={frames} nowMs={batch?.nowMs ?? 0} paused={paused} />
           <Text style={s.muted}>内存 {history.length}/900 条 · 最多 30 秒 · 原始 tag，未平滑</Text>
           <Text style={s.muted}>背压丢帧估计 {batch?.backpressureDroppedEstimate ?? 0}（含在途帧）</Text>
+          <SpeechResults batch={speech} />
+          <SpeechSettings value={config} onSave={setConfig} paused={paused} />
+          {!config.key && <Text style={s.muted}>请暂停后在设置中填写云端 API Key。本机识别可独立工作。</Text>}
         </ScrollView>
       </View>
     </View>
@@ -134,6 +171,9 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#071a30", padding: 12, gap: 10 },
   toolbar: { flexDirection: "row", alignItems: "center", gap: 12 },
+  permissionStatus: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10, paddingHorizontal: 4 },
+  permissionOk: { color: "#86efb5", fontSize: 11 }, permissionWarn: { color: "#ffb3a7", fontSize: 11 },
+  permissionState: { color: "#b8cce2", fontSize: 11 },
   heading: { flex: 1, gap: 4 }, title: { color: "#f2f7ff", fontSize: 18, fontWeight: "700" },
   body: { flex: 1, gap: 12 }, landscape: { flexDirection: "row" },
   camera: { flex: 1, minHeight: 160, overflow: "hidden", borderRadius: 16, backgroundColor: "#02070d" },
@@ -141,6 +181,7 @@ const s = StyleSheet.create({
   panel: { flex: 1 }, panelContent: { gap: 5, paddingBottom: 8 },
   permission: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 20 },
   badge: { position: "absolute", top: 12, left: 12, right: 12, padding: 8, borderRadius: 9, backgroundColor: "#071a30cc" },
+  cloudBadge: { position: "absolute", top: 55, left: 12, right: 12, padding: 8, borderRadius: 9, backgroundColor: "#864214dd" },
   prediction: { position: "absolute", bottom: 12, left: 12, right: 12, backgroundColor: "#071a30dd", borderRadius: 12, padding: 12, gap: 5 },
   tag: { color: "#41d9ed", fontSize: 24, fontWeight: "700" },
   text: { color: "#e6f0ff", fontSize: 13 }, muted: { color: "#9ab2ce", fontSize: 11 },
