@@ -1,0 +1,88 @@
+{
+  "branch": "feat/local-realtime-emotion",
+  "model": "sfemo_D0_B05_L1_128_s2026_fp32",
+  "onnx_sha256": "a1b4aae101b8a5ba5b41fa1eab2c36cdb985904c0bc41d7883d00da6b1e4ac93",
+  "temperature": 0.7205746494909738,
+  "labels": [
+    "positive",
+    "negative",
+    "neutral"
+  ],
+  "input": "RGB NCHW float32 1x3x128x128",
+  "detector": "MediaPipe BlazeFace short-range float16 v1, IMAGE CPU, confidence 0.5",
+  "crop": "square 1.2 expansion, black out-of-image padding, no alignment",
+  "pc_reference": "docs/edge-emotion/pc-reference.json",
+  "checks": {
+    "typescript": "passed",
+    "javascript_regression": "5/5 passed",
+    "native_compile": "passed",
+    "native_unit_tests": "passed",
+    "android_instrumentation": "compiled successfully; not run: no online device",
+    "release_apk": "passed",
+    "release_apk_path": "F:\\app\\android_app\\delivery\\app-emotion-timeline-20261030.apk",
+    "release_apk_sha256": "EDEC808481EDC6547A4178A5CD43A02BC61231D8A3F585FD7CBF3B558101A56B",
+    "physical_device": "not connected"
+  },
+  "camera_fix_2026_10_29": {
+    "report": "docs/edge-emotion/camera-fix-2026-10-29.md",
+    "typescript": "passed",
+    "javascript_regression": "5/5 passed",
+    "native_unit_tests": "4/4 passed",
+    "android_instrumentation": "compiled; not run",
+    "release_build": "passed",
+    "apk_signature": "v2 verified",
+    "bundled_model_hash": "verified unchanged",
+    "new_native_diagnostics_in_dex": "verified",
+    "diagnostics_script_syntax": "passed",
+    "phone_startup": "pending; no online physical device; emulator offline",
+    "reported_error": "ERROR_STREAM_CONFIG (4)",
+    "root_cause_status": "native child layout defect corrected; no device cause exception available"
+  },
+  "inference_fix_2026_10_29": {
+    "report": "docs/edge-emotion/inference-fix-2026-10-29.md",
+    "user_screenshot": "preview works; 338 analyzed frames; per-frame inference_failed; no exception shown",
+    "cause": "MPImage.close recycles original bitmap before old classify call; verified bundled tasks-core bytecode and Robolectric test",
+    "typescript": "passed",
+    "javascript_regression": "5/5 passed",
+    "native_unit_tests": [
+      {
+        "suite": "expo.modules.edgeemotion.EmotionMathTest",
+        "tests": 4,
+        "failures": 0
+      },
+      {
+        "suite": "expo.modules.edgeemotion.FrameBitmapTest",
+        "tests": 4,
+        "failures": 0
+      }
+    ],
+    "android_instrumentation": "APK built; not executed: no online Android device",
+    "release_build": "passed",
+    "apk_signature": "v2 verified",
+    "bundled_model_and_detector_hashes": "verified unchanged",
+    "new_inference_diagnostics_in_dex": "verified",
+    "robolectric_not_in_release_dex": "verified",
+    "apk_path": "F:\\app\\android_app\\delivery\\app-emotion-inference-fix-20261029.apk",
+    "apk_sha256": "A970E7451766858C97C44A16F81336F4DB505B5D7B37821573B578D5691D88FF",
+    "test_apk_path": "F:\\app\\android_app\\delivery\\edge-emotion-inference-tests-20261029.apk",
+    "test_apk_sha256": "11A896283414F747890E8E6818C6C6E764B8FE0AF269ADA37A54E9A04C16DE3F",
+    "phone_inference": "pending; no connected phone; emulator offline"
+  },
+  "timeline_2026_10_30": {
+    "report": "docs/edge-emotion/timeline-2026-10-30.md",
+    "typescript": "passed",
+    "javascript_regression": "5/5 passed",
+    "component_browser_validation": "actual EmotionTimeline via React Native Web; fixture data; 320/390/720 widths; selected border, follow latest, pause, 420-frame window and session reset; no JS errors",
+    "android_release_build": "passed",
+    "signature": "v2 verified",
+    "bundled_model_detector_hashes": "verified unchanged",
+    "bundled_js_matches_generated_release": "verified",
+    "timeline_source_in_sourcemap": "verified",
+    "source_content_matches_current": true,
+    "apk_path": "F:\\app\\android_app\\delivery\\app-emotion-timeline-20261030.apk",
+    "apk_sha256": "EDEC808481EDC6547A4178A5CD43A02BC61231D8A3F585FD7CBF3B558101A56B",
+    "preview_path": "F:\\app\\android_app\\delivery\\emotion-timeline-preview-20261030.png",
+    "device": "no online adb device; Android UI not tested on phone",
+    "user_screenshot": "valid neutral prediction and face box observed; not controlled performance validation"
+  }
+}

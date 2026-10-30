@@ -1,0 +1,29 @@
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.edgeemotion'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.edgeemotion"
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName "1.0.0"
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+  }
+}
+
+dependencies {
+  // Match expo-camera 17.0.10, including its video/extensions dependencies.
+  implementation "androidx.camera:camera-core:1.5.0-rc01"
+  implementation "androidx.camera:camera-camera2:1.5.0-rc01"
+  implementation "androidx.camera:camera-lifecycle:1.5.0-rc01"
+  implementation "androidx.camera:camera-view:1.5.0-rc01"
+  implementation "com.google.mediapipe:tasks-vision:0.10.21"
+  implementation "com.microsoft.onnxruntime:onnxruntime-android:1.23.2"
+  testImplementation "junit:junit:4.13.2"
+  testImplementation "org.robolectric:robolectric:4.14.1"
+  androidTestImplementation "androidx.test:runner:1.6.2"
+  androidTestImplementation "androidx.test.ext:junit:1.2.1"
+}
