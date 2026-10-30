@@ -1,0 +1,9 @@
+node_modules/
+build/
+.gradle/
+.cxx/
+__pycache__/
+*.py[cod]
+*.apk
+*.aab
+local.properties

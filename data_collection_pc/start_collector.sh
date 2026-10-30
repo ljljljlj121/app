@@ -5,6 +5,7 @@
 # 然后浏览器打开: http://localhost:8088
 
 set -e
+COLLECTOR_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "======================================"
 echo "  情感采集系统 - 板子端启动"
@@ -28,7 +29,7 @@ sleep 31
 
 # 2. 切换工作目录
 echo "[2/4] 切换到工作目录..."
-cd /userdata/app/RobotAiClient/src/emo/data_collection
+cd "$COLLECTOR_DIR"
 
 # 3. 设置环境变量
 echo "[3/4] 设置环境变量..."

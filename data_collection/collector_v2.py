@@ -156,6 +156,7 @@ class AudioCollector:
         self.chunks: Deque[Tuple[float, float, bytes, float]] = deque()  # start, end, data, rms
         self.lock = threading.Lock()
         self._sub = None
+        self.mer_sink = None
 
     def start(self):
         try:
@@ -191,6 +192,9 @@ class AudioCollector:
             return
         end = time.monotonic()
         dur = len(data) / float(SAMPLE_RATE * 2)
+        sink = self.mer_sink
+        if sink:
+            sink(data, end - dur)
         rms = self._calc_rms(data)
         with self.lock:
             self.chunks.append((end - dur, end, data, rms))
@@ -406,7 +410,7 @@ def do_record_and_upload(board_id: str, mode: str = "face_only"):
             data=body,
             headers={
                 "Content-Type": f"multipart/form-data; boundary={boundary.decode()}",
-                "X-Upload-Token": cfg.get("password", "xzy123456!"),
+                "X-Upload-Token": cfg.get("password", os.getenv("UPLOAD_TOKEN", "")),
             },
             method="POST",
         )
@@ -424,6 +428,38 @@ def do_record_and_upload(board_id: str, mode: str = "face_only"):
             p.unlink(missing_ok=True)
         try: tmpdir.rmdir()
         except Exception: pass
+
+
+mer_service = None
+mer_control_lock = threading.Lock()
+
+@app.route("/api/mer/status")
+def mer_status():
+    return jsonify(mer_service.snapshot() if mer_service else dict(running=False, message="未启动", result=None, error="", queued=0, dropped=0))
+
+@app.route("/api/mer/start", methods=["POST"])
+def mer_start():
+    global mer_service
+    from mer_service import MerService
+    with mer_control_lock:
+        if mer_service and mer_service.snapshot()["running"]:
+            return jsonify(ok=True)
+        if not cam_mgr or not audio_collector:
+            return jsonify(ok=False, msg="摄像头/音频尚未初始化"), 409
+        try:
+            service = MerService(cam_mgr, audio_collector, cfg)
+            service.start()
+            mer_service = service
+            return jsonify(ok=True)
+        except Exception as exc:
+            return jsonify(ok=False, msg=str(exc)), 400
+
+@app.route("/api/mer/stop", methods=["POST"])
+def mer_stop():
+    with mer_control_lock:
+        if mer_service:
+            mer_service.stop()
+    return jsonify(ok=True)
 
 
 # ── API 路由 ──────────────────────────────────────────────────────────
@@ -609,6 +645,11 @@ def api_review_proxy_media():
         return str(e), 500
 
 
+@app.route("/mer")
+def mer_page():
+    return render_template("mer.html")
+
+
 @app.route("/")
 def index():
     return render_template(
@@ -632,12 +673,15 @@ def get_board_id():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--server",    default=DEFAULT_SERVER)
-    parser.add_argument("--password",  default="xzy123456!")
+    parser.add_argument("--password",  default=os.getenv("UPLOAD_TOKEN", ""))
     parser.add_argument("--rtsp",      default=DEFAULT_RTSP)
     parser.add_argument("--ros-topic", default=DEFAULT_ROS_TOPIC)
     parser.add_argument("--cam-api",   default=DEFAULT_CAM_API)
     parser.add_argument("--board-id",  default=None)
     parser.add_argument("--port",      default=8088, type=int)
+    parser.add_argument("--mer-api-base", default=os.getenv("OPENAI_BASE_URL", "http://183.62.69.210:9005/v1"))
+    parser.add_argument("--mer-api-key", default=os.getenv("OPENAI_API_KEY", ""))
+    parser.add_argument("--mer-model", default="/data2/lzh/emo/checkpoint")
     args = parser.parse_args()
 
     cfg.update(vars(args))

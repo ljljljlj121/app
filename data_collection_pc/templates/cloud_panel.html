@@ -1,0 +1,68 @@
+<div class="bg-slate-800 rounded-2xl border border-slate-700 p-4 mb-4">
+    <h2 class="font-bold text-xl mb-2">☁ 云端情感识别</h2>
+    <p class="text-slate-400 text-sm mb-3">无限等待开口 → 录制 → 停顿 0.6 秒后上传识别 → 自动返回监听</p>
+    <img src="/video_feed" alt="摄像头预览" class="w-full rounded-xl mb-3 bg-black">
+    <p id="mer-result" class="text-2xl text-cyan-300 font-bold mb-2">尚无识别结果</p>
+    <p id="mer-status" class="text-sm mb-2" role="status">就绪</p>
+    <p id="mer-error" class="text-red-400 text-sm mb-2" role="alert"></p>
+    <p id="mer-metrics" class="text-slate-400 text-sm mb-3"></p>
+    <button id="mer-toggle" onclick="merToggle()" class="w-full bg-blue-600 rounded-xl py-3 font-bold">开始循环语音检测</button>
+    <p class="text-slate-400 text-xs mt-3">等待无超时，每段讲话最多 15 秒。上传识别期间暂停监听，不产生片段队列。按停止结束循环。</p>
+    <label class="block text-sm mt-4">推理 API 地址<input id="mer-base" value="{{ mer_api_base }}" class="block w-full rounded-lg p-2 mt-1 bg-slate-900 border border-slate-600"></label>
+    <label class="block text-sm mt-3">API Key（留空使用启动配置）<input id="mer-key" type="password" autocomplete="off" class="block w-full rounded-lg p-2 mt-1 bg-slate-900 border border-slate-600"></label>
+    <label class="block text-sm mt-3">模型名称<input id="mer-model" value="{{ mer_model }}" class="block w-full rounded-lg p-2 mt-1 bg-slate-900 border border-slate-600"></label>
+    <label class="block text-sm mt-3">音量门槛（RMS）<input id="mer-threshold" type="number" min="1" value="200" class="block w-full rounded-lg p-2 mt-1 bg-slate-900 border border-slate-600"></label>
+</div>
+<script>
+window.merRunning = false;
+let merIsRunning = false;
+let merStopping = false;
+let merRequestBusy = false;
+let merPolling = false;
+async function merPoll() {
+    if (merPolling) return;
+    merPolling = true;
+    try {
+        const response = await fetch('/api/mer/status');
+        if (!response.ok) throw new Error('无法读取云端检测状态');
+        const state = await response.json();
+        merIsRunning = state.running;
+        merStopping = state.stopping;
+        window.merRunning = state.running || state.stopping;
+        const button = document.getElementById('mer-toggle');
+        button.disabled = merRequestBusy || state.stopping;
+        button.textContent = state.stopping ? '正在结束上一次请求…' : state.running ? '停止检测' : '开始循环语音检测';
+        for (const name of ['base','key','model','threshold']) document.getElementById('mer-'+name).disabled = window.merRunning;
+        document.getElementById('mer-status').textContent = state.message + (state.rms === undefined ? '' : ` · 音量 ${state.rms}`);
+        document.getElementById('mer-error').textContent = state.error || '';
+        if (state.result) {
+            const r = state.result;
+            const labels = {happy:'😊 开心', sad:'😢 悲伤', angry:'😠 愤怒', fear:'😨 恐惧', disgust:'🤢 厌恶', surprise:'😲 惊讶', neutral:'😐 平静'};
+            document.getElementById('mer-result').textContent = `${labels[r.prediction]} · #${r.segment_id} · ${new Date(r.updated_at*1000).toLocaleTimeString()}`;
+            document.getElementById('mer-metrics').textContent = `录制 ${r.duration.toFixed(1)}s · 请求 ${r.api_latency.toFixed(1)}s · 录制结束至结果 ${r.result_delay.toFixed(1)}s`;
+        }
+    } catch (e) { document.getElementById('mer-error').textContent = e.message; }
+    finally { merPolling = false; }
+}
+async function merToggle() {
+    if (merRequestBusy) return;
+    merRequestBusy = true;
+    document.getElementById('mer-toggle').disabled = true;
+    try {
+        const response = await fetch('/api/mer/' + (merIsRunning ? 'stop' : 'start'), {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({api_base:document.getElementById('mer-base').value,
+                api_key:document.getElementById('mer-key').value, model:document.getElementById('mer-model').value,
+                threshold:document.getElementById('mer-threshold').value})
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.msg || '操作失败');
+        merRequestBusy = false;
+        await merPoll();
+    } catch (e) { document.getElementById('mer-error').textContent = e.message; }
+    finally { merRequestBusy = false; document.getElementById('mer-toggle').disabled = merStopping; }
+}
+setInterval(merPoll, 1000);
+merPoll();
+window.addEventListener('pagehide', () => { if (window.merRunning) navigator.sendBeacon('/api/mer/stop'); });
+</script>

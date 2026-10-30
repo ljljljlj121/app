@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>云端情感识别</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-slate-900 text-slate-100 p-4"><main class="max-w-2xl mx-auto"><a href="/" class="block mb-4 text-blue-400">← 返回数据采集</a><img src="/video_feed" class="w-full rounded-xl mb-4" alt="摄像头实时预览">        <div class="bg-slate-800 rounded-xl p-4 mb-4">
+            <h2 class="font-bold">☁ 云端流式情感识别</h2>
+            <p class="text-xs text-slate-400">持续采集，空闲 3 秒 / 发言停顿 600ms 切片，最长 15 秒。启动后安静 1.5 秒。</p>
+            <button onclick="merControl('start')" class="bg-blue-600 rounded p-2 mt-2">开始检测</button>
+            <button onclick="merControl('stop')" class="bg-slate-600 rounded p-2">停止检测</button>
+            <p id="mer-result" class="text-xl mt-2">尚无识别结果</p>
+            <p id="mer-status" class="text-sm text-slate-400" role="status"></p>
+        </div>
+        <script>
+            async function merControl(action) {
+                try {
+                    const response = await fetch('/api/mer/' + action, {method:'POST'});
+                    const data = await response.json();
+                    if (!response.ok || !data.ok) throw new Error(data.msg || '操作失败');
+                    await merPoll();
+                } catch(e) { document.getElementById('mer-status').textContent = e.message; }
+            }
+            async function merPoll() {
+                try {
+                    const response = await fetch('/api/mer/status');
+                    if (!response.ok) throw new Error('状态读取失败');
+                    const data = await response.json();
+                    document.getElementById('mer-status').textContent = `${data.message} · 队列 ${data.queued} · 替换旧片段 ${data.dropped}` + (data.error ? ' · 检测失败：' + data.error : '');
+                    if(data.result) {
+                        const r = data.result;
+                        const labels = {happy:'开心',sad:'悲伤',angry:'愤怒',fear:'恐惧',disgust:'厌恶',surprise:'惊讶',neutral:'平静'};
+                        document.getElementById('mer-result').textContent = `${labels[r.prediction]} · #${r.segment_id} · ${r.duration.toFixed(1)}s · ${new Date(r.updated_at*1000).toLocaleTimeString()}`;
+                    }
+                } catch(e) { document.getElementById('mer-status').textContent = e.message; }
+            }
+            setInterval(merPoll, 1000);
+        </script>
+<p class="text-sm text-slate-400">仅保留最新一段待识别片段，旧片段自动替换。离开此页会停止检测。</p></main><script>window.addEventListener('pagehide',()=>navigator.sendBeacon('/api/mer/stop'));</script></body></html>

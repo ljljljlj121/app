@@ -156,6 +156,7 @@ class AudioCollector:
         self.chunks: Deque[Tuple[float, float, bytes, float]] = deque()  # start, end, data, rms
         self.lock = threading.Lock()
         self._sub = None
+        self.mer_sink = None
 
     def start(self):
         try:
@@ -191,6 +192,9 @@ class AudioCollector:
             return
         end = time.monotonic()
         dur = len(data) / float(SAMPLE_RATE * 2)
+        sink = self.mer_sink
+        if sink:
+            sink(data, end - dur)
         rms = self._calc_rms(data)
         with self.lock:
             self.chunks.append((end - dur, end, data, rms))
@@ -406,7 +410,7 @@ def do_record_and_upload(board_id: str, mode: str = "face_only"):
             data=body,
             headers={
                 "Content-Type": f"multipart/form-data; boundary={boundary.decode()}",
-                "X-Upload-Token": cfg.get("password", "xzy123456!"),
+                "X-Upload-Token": cfg.get("password", os.getenv("UPLOAD_TOKEN", "")),
             },
             method="POST",
         )
@@ -426,21 +430,72 @@ def do_record_and_upload(board_id: str, mode: str = "face_only"):
         except Exception: pass
 
 
+operation_lock = threading.Lock()
+mer_service = None
+
+@app.route("/api/mer/status")
+def mer_status():
+    return jsonify(mer_service.snapshot() if mer_service else dict(running=False, stopping=False, phase="stopped", message="已停止", result=None, error=""))
+
+@app.route("/api/mer/start", methods=["POST"])
+def mer_start():
+    global mer_service
+    from pc_emotion import EmotionService
+    with operation_lock:
+        if mer_service:
+            current = mer_service.snapshot()
+            if current["running"]:
+                return jsonify(ok=True)
+            if current["stopping"]:
+                return jsonify(ok=False, msg="正在结束上一次请求，请稍候"), 409
+        with state_lock:
+            if state["status"] in ("recording", "merging", "recorded", "uploading"):
+                return jsonify(ok=False, msg="请先完成数据集采集"), 409
+        if not cam_mgr or not audio_collector:
+            return jsonify(ok=False, msg="摄像头/音频尚未初始化"), 409
+        data = request.get_json(silent=True) or {}
+        try:
+            threshold = float(data.get("threshold", 200))
+            if not math.isfinite(threshold) or threshold <= 0:
+                raise ValueError("音量门槛必须为正数")
+            config = dict(cfg, mer_api_base=str(data.get("api_base") or cfg.get("mer_api_base", "http://183.62.69.210:9005/v1")).strip(),
+                mer_api_key=str(data.get("api_key") or cfg.get("mer_api_key", os.getenv("OPENAI_API_KEY", ""))),
+                mer_model=str(data.get("model") or cfg.get("mer_model", "/data2/lzh/emo/checkpoint")).strip(), mer_threshold=threshold)
+            if not config["mer_api_base"].startswith(("http://", "https://")):
+                raise ValueError("推理地址需使用 http 或 https")
+            if not config["mer_api_key"].strip():
+                raise ValueError("请填写 API Key 或设置 OPENAI_API_KEY")
+            service = EmotionService(cam_mgr, audio_collector, config)
+            service.start()
+            mer_service = service
+            return jsonify(ok=True)
+        except Exception as exc:
+            return jsonify(ok=False, msg=str(exc)), 400
+
+@app.route("/api/mer/stop", methods=["POST"])
+def mer_stop():
+    with operation_lock:
+        if mer_service:
+            mer_service.stop()
+    return jsonify(ok=True)
+
+
 # ── API 路由 ──────────────────────────────────────────────────────────
 @app.route("/api/start", methods=["POST"])
 def api_start():
     data = request.json or {}
     mode = data.get("mode", "face_only")
-    with state_lock:
-        # 新增拦截 merging 状态
-        if state["status"] in ("recording", "merging", "recorded", "uploading"):
-            return jsonify({"ok": False, "msg": "正在录制中"}), 409
-    threading.Thread(
-        target=do_record_and_upload,
-        args=(cfg.get("board_id", "robot"), mode),
-        daemon=True
-    ).start()
-    return jsonify({"ok": True})
+    with operation_lock:
+        if mer_service and (mer_service.snapshot()["running"] or mer_service.snapshot()["stopping"]):
+            return jsonify(ok=False, msg="请先停止云端检测并等待请求结束"), 409
+        with state_lock:
+            if state["status"] in ("recording", "merging", "recorded", "uploading"):
+                return jsonify(ok=False, msg="正在录制中"), 409
+            state.update(status="recording", error="")
+        threading.Thread(target=do_record_and_upload,
+            args=(cfg.get("board_id", "robot"), mode), daemon=True).start()
+    return jsonify(ok=True)
+
 
 @app.route("/api/status")
 def api_status():
@@ -615,7 +670,9 @@ def index():
         "collector.html",
         server=cfg.get("server", DEFAULT_SERVER),
         board_id=cfg.get("board_id", "unknown"),
-        emotions=EMOTIONS
+        emotions=EMOTIONS,
+        mer_api_base=cfg.get("mer_api_base", "http://183.62.69.210:9005/v1"),
+        mer_model=cfg.get("mer_model", "/data2/lzh/emo/checkpoint")
     )
 
 
@@ -632,12 +689,15 @@ def get_board_id():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--server",    default=DEFAULT_SERVER)
-    parser.add_argument("--password",  default="xzy123456!")
+    parser.add_argument("--password",  default=os.getenv("UPLOAD_TOKEN", ""))
     parser.add_argument("--rtsp",      default=DEFAULT_RTSP)
     parser.add_argument("--ros-topic", default=DEFAULT_ROS_TOPIC)
     parser.add_argument("--cam-api",   default=DEFAULT_CAM_API)
     parser.add_argument("--board-id",  default=None)
     parser.add_argument("--port",      default=8088, type=int)
+    parser.add_argument("--mer-api-base", default=os.getenv("OPENAI_BASE_URL", "http://183.62.69.210:9005/v1"))
+    parser.add_argument("--mer-api-key", default=os.getenv("OPENAI_API_KEY", ""))
+    parser.add_argument("--mer-model", default="/data2/lzh/emo/checkpoint")
     args = parser.parse_args()
 
     cfg.update(vars(args))

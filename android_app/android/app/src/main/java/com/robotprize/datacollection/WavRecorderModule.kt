@@ -24,6 +24,7 @@ class WavRecorderModule(context: ReactApplicationContext) : ReactContextBaseJava
   private val writeLock = Any()
   @Volatile private var capturing = false
   @Volatile private var latestRms = 0.0
+  @Volatile private var monitorOnly = false
   private var recorder: AudioRecord? = null
   private var writer: RandomAccessFile? = null
   private var worker: Thread? = null
@@ -34,7 +35,25 @@ class WavRecorderModule(context: ReactApplicationContext) : ReactContextBaseJava
   override fun getName() = "WavRecorder"
 
   @ReactMethod
-  fun startCapture(promise: Promise) {
+  fun startCapture(promise: Promise) = startCaptureInternal(promise, false)
+
+  @ReactMethod
+  fun startMonitoring(promise: Promise) = startCaptureInternal(promise, true)
+
+  @ReactMethod
+  fun beginRecording(promise: Promise) {
+    synchronized(writeLock) {
+      if (!capturing || !monitorOnly) {
+        promise.reject("NOT_MONITORING", "麦克风尚未进入侦听状态")
+        return
+      }
+      monitorOnly = false
+      startedAtMs = SystemClock.elapsedRealtime()
+      promise.resolve(null)
+    }
+  }
+
+  private fun startCaptureInternal(promise: Promise, monitoring: Boolean) {
     synchronized(writeLock) {
       if (capturing) {
         promise.reject("ALREADY_RECORDING", "麦克风正在录制")
@@ -69,6 +88,7 @@ class WavRecorderModule(context: ReactApplicationContext) : ReactContextBaseJava
         writer = randomFile
         outputFile = file
         bytesWritten = 0L
+        monitorOnly = monitoring
         latestRms = 0.0
         startedAtMs = SystemClock.elapsedRealtime()
         capturing = true
@@ -236,6 +256,21 @@ class WavRecorderModule(context: ReactApplicationContext) : ReactContextBaseJava
       isDaemon = true
       start()
     }
+  }
+
+  @ReactMethod
+  fun readFileBase64(path: String, promise: Promise) {
+    Thread {
+      try {
+        val file = localFile(path).canonicalFile
+        val cache = reactApplicationContext.cacheDir.canonicalPath
+        require(file.path.startsWith(cache + File.separator)) { "仅允许读取应用缓存" }
+        require(file.length() <= 32 * 1024 * 1024) { "片段超过 32MB" }
+        promise.resolve(android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP))
+      } catch (error: Exception) {
+        promise.reject("READ_FAILED", error.message, error)
+      }
+    }.start()
   }
 
   @ReactMethod
@@ -445,8 +480,10 @@ class WavRecorderModule(context: ReactApplicationContext) : ReactContextBaseJava
       latestRms = if (sampleCount == 0) 0.0 else sqrt(sumSquares / sampleCount)
       synchronized(writeLock) {
         try {
-          writer?.write(buffer, 0, count)
-          bytesWritten += count
+          if (!monitorOnly) {
+            writer?.write(buffer, 0, count)
+            bytesWritten += count
+          }
         } catch (_: Exception) {
           capturing = false
         }

@@ -1,3 +1,4 @@
+import { CloudEmotionScreen } from "./CloudEmotionScreen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Video } from "expo-av";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -58,7 +59,7 @@ type NativeWavRecorder = {
 
 const NativeRecorder = NativeModules.WavRecorder as NativeWavRecorder | undefined;
 const SERVER_DEFAULT = "http://183.62.69.210:9004";
-const TOKEN_DEFAULT = "xzy123456!";
+const TOKEN_DEFAULT = "";
 const EMOTIONS = [
   { key: "happy", label: "😊 开心" },
   { key: "sad", label: "😢 悲伤" },
@@ -138,7 +139,8 @@ function AppContent() {
   const [cameraReady, setCameraReady] = useState(false);
   const [settings, setSettings] = useState<Settings>(makeDefaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [tab, setTab] = useState<"collect" | "review">("collect");
+  const [tab, setTab] = useState<"collect" | "review" | "cloud">("collect");
+  const [cloudBusy, setCloudBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("就绪，请选择录制模式开始采集");
   const [error, setError] = useState("");
@@ -616,8 +618,8 @@ function AppContent() {
       <StatusBar style="light" />
       <View style={[styles.header, landscape && styles.headerLandscape]}>
         <View style={{ flex: 1, marginRight: 10 }}>
-          <Text style={[styles.title, landscape && styles.titleLandscape]} numberOfLines={1}>🎭 多模态情感采集</Text>
-          {!landscape && <Text style={styles.subtitle} numberOfLines={1}>{settings.boardId} · {settings.server}</Text>}
+          <Text style={[styles.title, landscape && styles.titleLandscape]} numberOfLines={1}>{tab === "cloud" ? "☁ 云端情感识别" : "🎭 多模态情感采集"}</Text>
+          {!landscape && <Text style={styles.subtitle} numberOfLines={1}>{tab === "cloud" ? "循环语音检测 · 识别后自动返回监听" : `${settings.boardId} · ${settings.server}`}</Text>}
         </View>
         <Pressable style={styles.settingsButton} onPress={() => setSettingsOpen(true)}>
           <Text style={styles.settingsButtonText}>设置</Text>
@@ -625,15 +627,20 @@ function AppContent() {
       </View>
 
       <View style={[styles.tabs, landscape && styles.tabsLandscape]}>
-        <Pressable onPress={() => setTab("collect")} style={[styles.tab, landscape && styles.tabLandscape, tab === "collect" && styles.activeTab]}>
-          <Text style={[styles.tabText, tab === "collect" && styles.activeTabText]}>📹 采集录制</Text>
+        <Pressable disabled={busy || cloudBusy} onPress={() => { if (tab !== "collect") { setCameraReady(false); setTab("collect"); } }} style={[styles.tab, landscape && styles.tabLandscape, tab === "collect" && styles.activeTab]}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabText, tab === "collect" && styles.activeTabText]}>📹 采集录制</Text>
         </Pressable>
-        <Pressable onPress={() => setTab("review")} style={[styles.tab, landscape && styles.tabLandscape, tab === "review" && styles.activeTab]}>
-          <Text style={[styles.tabText, tab === "review" && styles.activeTabText]}>🔍 盲审复核</Text>
+        <Pressable disabled={busy || cloudBusy} onPress={() => setTab("review")} style={[styles.tab, landscape && styles.tabLandscape, tab === "review" && styles.activeTab]}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabText, tab === "review" && styles.activeTabText]}>🔍 盲审复核</Text>
+        </Pressable>
+        <Pressable disabled={busy || cloudBusy} onPress={() => setTab("cloud")} style={[styles.tab, landscape && styles.tabLandscape, tab === "cloud" && styles.activeTab]}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabText, tab === "cloud" && styles.activeTabText]}>☁ 云端情感识别</Text>
         </Pressable>
       </View>
 
-      {tab === "collect" ? (
+      {tab === "cloud" ? (
+        <CloudEmotionScreen onBusyChange={setCloudBusy} />
+      ) : tab === "collect" ? (
         <View style={{ flex: 1 }} onLayout={({ nativeEvent: { layout } }) => {
           setCaptureViewport((old) => old.width === layout.width && old.height === layout.height
             ? old : { width: layout.width, height: layout.height });
@@ -878,9 +885,9 @@ const styles = StyleSheet.create({
   settingsButton: { borderColor: "#0b9fbe", borderWidth: 1, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 8 },
   settingsButtonText: { color: "#53dcec", fontWeight: "700" },
   tabs: { flexDirection: "row", marginHorizontal: 14, marginBottom: 10, borderRadius: 12, backgroundColor: "#102844", overflow: "hidden" },
-  tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
+  tab: { flex: 1, minWidth: 0, paddingHorizontal: 4, paddingVertical: 12, alignItems: "center" },
   activeTab: { backgroundColor: "#12395d", borderBottomColor: "#21d1e7", borderBottomWidth: 2 },
-  tabText: { color: "#83a2bf", fontWeight: "700" },
+  tabText: { color: "#83a2bf", fontSize: 13, fontWeight: "700" },
   activeTabText: { color: "#5be5f2" },
   content: { padding: 14, paddingBottom: 30 },
   collectLandscape: { flexDirection: "row", alignItems: "flex-start", gap: 16, paddingBottom: 14 },

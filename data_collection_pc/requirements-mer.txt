@@ -1,0 +1,2 @@
+# Install into the existing collector environment (Flask/OpenCV/NumPy/ROS unchanged).
+openai>=1.0
