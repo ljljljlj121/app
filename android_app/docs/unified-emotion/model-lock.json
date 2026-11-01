@@ -1,0 +1,104 @@
+{
+  "asr_model": "sherpa-onnx-paraformer-zh-small-2024-03-09",
+  "asr_revision": "63ddc3cd0f2810b68289a7b3876e62ef5d53d6df",
+  "sherpa_android_version": "2.0.1",
+  "text_model": "sfemo_DT0_T02_len64_s42",
+  "text_labels": [
+    "positive",
+    "negative",
+    "neutral"
+  ],
+  "text_temperature": 2.0566793434560156,
+  "text_max_tokens": 64,
+  "chunk_content_tokens": 62,
+  "aggregation": "content-token-count-weighted mean of per-chunk calibrated probabilities",
+  "visual_aggregation": "A2",
+  "fusion": "F3",
+  "default_text_weight": 0.75,
+  "files": [
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/offline_asr/config.yaml",
+      "bytes": 56290,
+      "sha256": "ad17decfc358cbf3f65ee6a18e44258cc8ff81662bcffc6da4cd11a5e3a3a2de",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-paraformer-zh-small-2024-03-09/resolve/63ddc3cd0f2810b68289a7b3876e62ef5d53d6df/config.yaml"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/offline_asr/model.int8.onnx",
+      "bytes": 81828675,
+      "sha256": "3ef6c19369b912f7caf3cef8e545c5ccd1a33d9d7ec792a46668dc41c4b229ec",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-paraformer-zh-small-2024-03-09/resolve/63ddc3cd0f2810b68289a7b3876e62ef5d53d6df/model.int8.onnx"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/offline_asr/README.md",
+      "bytes": 152,
+      "sha256": "d6ae99ac487417428a0685f518a52395580d3d204da76b566a5eb20744d14a8d",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-paraformer-zh-small-2024-03-09/resolve/63ddc3cd0f2810b68289a7b3876e62ef5d53d6df/README.md"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/offline_asr/tokens.txt",
+      "bytes": 75352,
+      "sha256": "4b2d964e18b9cf139b473003b6698fb2ed9a2a5ec55b93daa677b28f578897aa",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-paraformer-zh-small-2024-03-09/resolve/63ddc3cd0f2810b68289a7b3876e62ef5d53d6df/tokens.txt"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/calibration.json",
+      "bytes": 5342,
+      "sha256": "64c58cf6fd41dcf226e1cd84de68bea0a6415639884107a904bd2bc114dce8b2",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/calibration.json"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/config.json",
+      "bytes": 532,
+      "sha256": "1cebd2306a1390217bb96ebacc5655ae843d4e2528f848705bc74b40fdefb6a4",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/config.json"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/frozen.json",
+      "bytes": 458,
+      "sha256": "b6e9063b18c9438b404c92fc1a4f752d188d6c15d4146dee20e18b378294d40f",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/frozen.json"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/manifest.json",
+      "bytes": 6185,
+      "sha256": "3140dface816bb891f5d26d1c8fa67503ea436ba0162413d871eee7ab72b5dd3",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/manifest.json"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/model.onnx",
+      "bytes": 153953157,
+      "sha256": "600ec556f45d3a6fe3d97d831007bb18fcf4fe1d4c87bad162040a19944d0b1f",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/model.onnx"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/special_tokens_map.json",
+      "bytes": 732,
+      "sha256": "5aa43c2f985a25296d5a5ce621c2f77376ca8091a47993c492fd5460b895b140",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/tokenizer/special_tokens_map.json"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/tokenizer.json",
+      "bytes": 439387,
+      "sha256": "c9c9a74e179a68973f69f4d9dc6245c3563b350dffa313f29b875ce9619e99c9",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/tokenizer/tokenizer.json"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/tokenizer_config.json",
+      "bytes": 1305,
+      "sha256": "75a743f7397bf8e240ac050a98e85084af163f8d2cc175448e793897e2f67225",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/tokenizer/tokenizer_config.json"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/vocab.txt",
+      "bytes": 109540,
+      "sha256": "45bbac6b341c319adc98a532532882e91a9cefc0329aa57bac9ae761c27b291c",
+      "text_project_path": "artifacts/sfemo_DT0_T02_len64_s42_fp32/tokenizer/vocab.txt"
+    },
+    {
+      "path": "modules/edge-emotion/android/libs/sherpa-onnx-static-link-onnxruntime-2.0.1.aar",
+      "bytes": 38577050,
+      "sha256": "07E042D97F3A6BD5B7FE74D4EEF0513DC01A714B16C15A903250095ABA43A575",
+      "source_release": "sherpa-onnx v2.0.1 static-link AAR; x86/x86_64 entries removed to avoid ORT duplicate (phone build uses arm64-v8a)"
+    }
+  ]
+}

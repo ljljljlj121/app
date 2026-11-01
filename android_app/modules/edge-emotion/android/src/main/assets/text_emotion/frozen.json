@@ -1,0 +1,8 @@
+{
+  "run_id": "sfemo_DT0_T02_len64_s42",
+  "checkpoint_sha256": "7f6e9fcf9ee5c538cad4c37152be9d8ec86c192c710028cc4aaf23ca1d257032",
+  "calibration_sha256": "64c58cf6fd41dcf226e1cd84de68bea0a6415639884107a904bd2bc114dce8b2",
+  "config_sha256": "1cebd2306a1390217bb96ebacc5655ae843d4e2528f848705bc74b40fdefb6a4",
+  "manifest_sha256": "2226fa45193eccedc319e42a20399dbb23f35caaaabd542bf901a9fc442f981c",
+  "frozen_at": "2026-10-22T19:24:25.004082+00:00"
+}

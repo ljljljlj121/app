@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+docs/edge-emotion/*.log
+docs/edge-emotion/*.zip
+docs/edge-emotion/camera-debug/
+modules/edge-emotion/android/build/
+modules/edge-emotion/android/.gradle/
+modules/edge-emotion/android/src/androidTest/assets/
+modules/edge-emotion/android/src/test/resources/
+delivery/

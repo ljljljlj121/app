@@ -5,6 +5,7 @@ import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ReviewMediaPlayer } from "./ReviewMediaPlayer";
+import { EmotionScreen } from "./EmotionScreen";
 import { getCapturePreviewSize } from "./captureLayout";
 import { captureFormData, CaptureFiles } from "./captureUpload";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -138,7 +139,7 @@ function AppContent() {
   const [cameraReady, setCameraReady] = useState(false);
   const [settings, setSettings] = useState<Settings>(makeDefaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [tab, setTab] = useState<"collect" | "review">("collect");
+  const [tab, setTab] = useState<"collect" | "review" | "emotion">("collect");
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("就绪，请选择录制模式开始采集");
   const [error, setError] = useState("");
@@ -154,6 +155,7 @@ function AppContent() {
   const [reviewVideoFallback, setReviewVideoFallback] = useState(false);
   const [loadingSamples, setLoadingSamples] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
+  const closeEmotion = useCallback(() => { setCameraReady(false); setTab("collect"); }, []);
 
   useEffect(() => {
     let active = true;
@@ -611,6 +613,12 @@ function AppContent() {
     );
   }
 
+  if (tab === "emotion") {
+    return <SafeAreaView style={styles.safe}><StatusBar style="light" />
+      <EmotionScreen onBack={closeEmotion} />
+    </SafeAreaView>;
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="light" />
@@ -630,6 +638,10 @@ function AppContent() {
         </Pressable>
         <Pressable onPress={() => setTab("review")} style={[styles.tab, landscape && styles.tabLandscape, tab === "review" && styles.activeTab]}>
           <Text style={[styles.tabText, tab === "review" && styles.activeTabText]}>🔍 盲审复核</Text>
+        </Pressable>
+        <Pressable disabled={busy || recording} onPress={() => { setCameraReady(false); setTab("emotion"); }}
+          style={[styles.tab, landscape && styles.tabLandscape, (busy || recording) && { opacity: 0.4 }]}>
+          <Text style={styles.tabText}>实时情绪识别</Text>
         </Pressable>
       </View>
 

@@ -1,0 +1,207 @@
+{
+  "model_sha256": "a1b4aae101b8a5ba5b41fa1eab2c36cdb985904c0bc41d7883d00da6b1e4ac93",
+  "synthetic_cases": 6,
+  "real_tensor_cases": 10,
+  "original_frame_cases": 12,
+  "ort_pc": "1.21.0",
+  "pil": "11.1.0",
+  "scope": "References generated on PC; Android comparisons are separate instrumentation tests.",
+  "detector_samples": [
+    {
+      "id": "detector_0",
+      "source": "F:\\data_emo\\data_emo_000001\\video.mp4",
+      "group": "9d9c",
+      "haar_boxes": [
+        [
+          237,
+          206,
+          100,
+          100
+        ]
+      ],
+      "haar_probability": [
+        0.007789838201277296,
+        0.3116496367971743,
+        0.6805605250015485
+      ]
+    },
+    {
+      "id": "detector_1",
+      "source": "F:\\data_emo\\data_emo_000061\\video.mp4",
+      "group": "android-2338ac",
+      "haar_boxes": [],
+      "haar_probability": null
+    },
+    {
+      "id": "detector_2",
+      "source": "F:\\data_emo\\data_emo_000062\\video.mp4",
+      "group": "android-240c2d",
+      "haar_boxes": [],
+      "haar_probability": null
+    },
+    {
+      "id": "detector_3",
+      "source": "F:\\data_emo\\data_emo_000063\\video.mp4",
+      "group": "android-667cda",
+      "haar_boxes": [
+        [
+          64,
+          121,
+          351,
+          351
+        ]
+      ],
+      "haar_probability": [
+        0.853548369132019,
+        0.01275052752721152,
+        0.13370110334076946
+      ]
+    },
+    {
+      "id": "detector_4",
+      "source": "F:\\data_emo\\data_emo_000076\\video.mp4",
+      "group": "android-7331e9",
+      "haar_boxes": [
+        [
+          217,
+          260,
+          76,
+          76
+        ]
+      ],
+      "haar_probability": [
+        0.00010378105796069228,
+        0.38764390785711716,
+        0.6122523110849222
+      ]
+    },
+    {
+      "id": "detector_5",
+      "source": "F:\\data_emo\\data_emo_000083\\video.mp4",
+      "group": "android-ef9632",
+      "haar_boxes": [
+        [
+          210,
+          278,
+          57,
+          57
+        ]
+      ],
+      "haar_probability": [
+        0.0011941358995599578,
+        0.09473853889837527,
+        0.9040673252020647
+      ]
+    },
+    {
+      "id": "detector_6",
+      "source": "F:\\data_emo\\data_emo_000091\\video.mp4",
+      "group": "android-d02094",
+      "haar_boxes": [
+        [
+          176,
+          221,
+          107,
+          107
+        ]
+      ],
+      "haar_probability": [
+        0.1568545532747037,
+        0.08052473554419672,
+        0.7626207111810996
+      ]
+    },
+    {
+      "id": "detector_7",
+      "source": "F:\\data_emo\\data_emo_000111\\video.mp4",
+      "group": "android-838372",
+      "haar_boxes": [
+        [
+          62,
+          189,
+          316,
+          316
+        ]
+      ],
+      "haar_probability": [
+        0.0007074519905372179,
+        0.004211170417253137,
+        0.9950813775922096
+      ]
+    },
+    {
+      "id": "detector_8",
+      "source": "F:\\data_emo\\data_emo_000118\\video.mp4",
+      "group": "android-1d44a4",
+      "haar_boxes": [
+        [
+          93,
+          128,
+          243,
+          243
+        ]
+      ],
+      "haar_probability": [
+        0.0034576441948486825,
+        0.05405195092415501,
+        0.9424904048809963
+      ]
+    },
+    {
+      "id": "detector_9",
+      "source": "F:\\data_emo\\data_emo_000124\\video.mp4",
+      "group": "android-b3aa40",
+      "haar_boxes": [
+        [
+          30,
+          69,
+          406,
+          406
+        ]
+      ],
+      "haar_probability": [
+        0.011308054218059652,
+        0.45217166149765725,
+        0.536520284284283
+      ]
+    },
+    {
+      "id": "detector_10",
+      "source": "F:\\data_emo\\data_emo_000125\\video.mp4",
+      "group": "android-2f8783",
+      "haar_boxes": [
+        [
+          109,
+          228,
+          61,
+          61
+        ],
+        [
+          91,
+          310,
+          318,
+          318
+        ]
+      ],
+      "haar_probability": null
+    },
+    {
+      "id": "detector_11",
+      "source": "F:\\data_emo\\data_emo_000147\\video.mp4",
+      "group": "android-80323d",
+      "haar_boxes": [
+        [
+          111,
+          265,
+          131,
+          131
+        ]
+      ],
+      "haar_probability": [
+        9.9924429284198e-05,
+        0.057335668092984855,
+        0.942564407477731
+      ]
+    }
+  ]
+}

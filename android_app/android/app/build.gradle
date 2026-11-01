@@ -89,11 +89,14 @@ android {
 
     namespace 'com.robotprize.datacollection'
     defaultConfig {
+        ndk {
+            abiFilters.addAll((findProperty('reactNativeArchitectures') ?: 'arm64-v8a,x86_64').split(',').findAll { it != 'x86' })
+        }
         applicationId 'com.robotprize.datacollection'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
-        versionName "1.0.7"
+        versionCode 11
+        versionName "1.1.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -123,6 +126,7 @@ android {
     }
     packagingOptions {
         jniLibs {
+            excludes += ['lib/x86/**']
             def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
             useLegacyPackaging enableLegacyPackaging.toBoolean()
         }
