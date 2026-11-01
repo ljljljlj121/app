@@ -1,0 +1,30 @@
+{
+  "tag": "emotion-models-v1-20261101",
+  "repository": "ljljljlj121/app",
+  "asset": "emotion-models-v1.zip",
+  "url": "https://github.com/ljljljlj121/app/releases/download/emotion-models-v1-20261101/emotion-models-v1.zip",
+  "bytes": 258789981,
+  "sha256": "7e17fad283738581f2b95065a78e4f4021f26bca7bd3d535c8f84bdb05edf70f",
+  "files": [
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/edge_emotion/face_detector.tflite",
+      "bytes": 229746,
+      "sha256": "b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/edge_emotion/model.onnx",
+      "bytes": 44702699,
+      "sha256": "a1b4aae101b8a5ba5b41fa1eab2c36cdb985904c0bc41d7883d00da6b1e4ac93"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/offline_asr/model.int8.onnx",
+      "bytes": 81828675,
+      "sha256": "3ef6c19369b912f7caf3cef8e545c5ccd1a33d9d7ec792a46668dc41c4b229ec"
+    },
+    {
+      "path": "modules/edge-emotion/android/src/main/assets/text_emotion/model.onnx",
+      "bytes": 153953157,
+      "sha256": "600ec556f45d3a6fe3d97d831007bb18fcf4fe1d4c87bad162040a19944d0b1f"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+# Mobile model weights are distributed as GitHub Release assets, not Git history.
+android_app/modules/edge-emotion/android/src/main/assets/edge_emotion/model.onnx
+android_app/modules/edge-emotion/android/src/main/assets/edge_emotion/face_detector.tflite
+android_app/modules/edge-emotion/android/src/main/assets/offline_asr/model.int8.onnx
+android_app/modules/edge-emotion/android/src/main/assets/text_emotion/model.onnx

@@ -39,6 +39,11 @@ gradle :edge-emotion:testDebugUnitTest :app:assembleRelease -PreactNativeArchite
 Use the installed Gradle 8.14.3 if the repository wrapper download is unavailable.
 No Git LFS or model changes are required for this update.
 
+The four mobile model weights are intentionally absent from Git history and are
+distributed by the GitHub Release asset in `release-models.json`. Run
+`python android_app/scripts/fetch_release_models.py` after cloning and before
+building the APK. The script verifies the bundle and every extracted file.
+
 ## Runtime behavior
 
 `EmotionScreen` remains the only emotion page and the existing CameraX view owns the
