@@ -10,7 +10,7 @@ import {
   type EmotionBatch, type EmotionFrame,
 } from "./emotionHistory";
 import { EmotionTimeline } from "./EmotionTimeline";
-import { SpeechResults, SpeechSettings, loadSpeechConfig, defaultSpeechConfig, type SpeechBatch, type SpeechConfig } from "./SpeechResults";
+import { SpeechHighlights, SpeechResults, SpeechSettings, loadSpeechConfig, defaultSpeechConfig, type SpeechBatch, type SpeechConfig } from "./SpeechResults";
 
 type NativeProps = ViewProps & {
   paused: boolean;
@@ -134,6 +134,7 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
           </View>
         </View>
         <ScrollView style={s.panel} contentContainerStyle={s.panelContent}>
+          <SpeechHighlights batch={speech} />
           <View style={s.actions}>
             <Pressable style={s.button} onPress={() => setPaused((old) => !old)}><Text style={s.buttonText}>{paused ? "恢复 · 新会话" : "暂停"}</Text></Pressable>
             <Pressable style={s.button} onPress={switchLens}><Text style={s.buttonText}>{front ? "切换后置" : "切换前置"}</Text></Pressable>
@@ -161,7 +162,6 @@ export function EmotionScreen({ onBack }: { onBack: () => void }) {
           <Text style={s.muted}>背压丢帧估计 {batch?.backpressureDroppedEstimate ?? 0}（含在途帧）</Text>
           <SpeechResults batch={speech} />
           <SpeechSettings value={config} onSave={setConfig} paused={paused} />
-          {!config.key && <Text style={s.muted}>请暂停后在设置中填写云端 API Key。本机识别可独立工作。</Text>}
         </ScrollView>
       </View>
     </View>

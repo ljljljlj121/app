@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 data class SpeechSettings(
   val base: String = "http://183.62.69.210:9005/v1",
-  val key: String = "",
+  val key: String = BuildConfig.CLOUD_API_KEY,
   val model: String = "/data2/lzh/emo/checkpoint",
   val rms: Double = 200.0,
   val silenceMs: Long = 1000,
@@ -23,7 +23,7 @@ data class SpeechSettings(
       val j = JSONObject(raw.ifBlank { "{}" })
       val base = j.optString("base", "http://183.62.69.210:9005/v1").trim().trimEnd('/')
       require(base.startsWith("http://") || base.startsWith("https://")) { "Invalid API address" }
-      return SpeechSettings(base, j.optString("key", ""), j.optString("model", "/data2/lzh/emo/checkpoint"),
+      return SpeechSettings(base, j.optString("key", "").ifBlank { BuildConfig.CLOUD_API_KEY }, j.optString("model", "/data2/lzh/emo/checkpoint"),
         j.optDouble("rms", 200.0).coerceIn(50.0, 10000.0),
         j.optLong("silenceMs", 1000).coerceIn(500, 3000),
         j.optDouble("textWeight", .75).coerceIn(0.0, 1.0))

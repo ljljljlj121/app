@@ -1,0 +1,13 @@
+{
+  "apk": "F:\\app\\android_app\\delivery\\unified-emotion-no-cloud-time-20261031.apk",
+  "version": "1.1.2",
+  "versionCode": 11,
+  "bytes": 348038454,
+  "sha256": "DB1086C4F4EECD54ECE6A031DD1B9A91DDA697F118E3371C3FD7A2F404C3E424",
+  "signatureVerified": true,
+  "typescript": "passed",
+  "speechHighlightsRegression": "passed",
+  "cloudTimeDisplay": "removed from highlight and records",
+  "physicalDeviceTest": "not performed",
+  "gitLfsUsed": false
+}

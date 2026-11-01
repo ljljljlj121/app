@@ -1,0 +1,21 @@
+{
+  "apk": "F:\\app\\android_app\\delivery\\unified-emotion-results-20261031.apk",
+  "version": "1.1.1",
+  "versionCode": 10,
+  "bytes": 348038838,
+  "sha256": "ED29E6922CAA584E61665FA261BEE73A93CA54D4D347A80493635BEA86A4FF9A",
+  "signatureVerified": true,
+  "embeddedCredentialVerifiedInDex": true,
+  "typescript": "passed",
+  "javascript": {
+    "passed": 6,
+    "failed": 0
+  },
+  "nativeJvm": {
+    "passed": 17,
+    "skipped": 1,
+    "failed": 0
+  },
+  "physicalDevice": "not available; emulator offline",
+  "gitLfsUsed": false
+}

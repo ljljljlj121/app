@@ -4,12 +4,25 @@ apply plugin: 'expo-module-gradle-plugin'
 group = 'expo.modules.edgeemotion'
 version = '1.0.0'
 
+// Keep the deployment credential out of JS and the settings UI.
+def cloudKey = System.getenv('MER_CLOUD_API_KEY')?.trim()
+if (!cloudKey) {
+  def reference = new File(rootProject.projectDir, '../../云端MER/inference_v2.py')
+  if (reference.isFile()) {
+    def match = reference.getText('UTF-8') =~ /OPENAI_API_KEY",\s*"([^"]+)"/
+    if (match.find()) cloudKey = match.group(1)
+  }
+}
+if (!cloudKey) throw new GradleException('Set MER_CLOUD_API_KEY or supply the cloud reference configuration before building.')
+
 android {
   namespace "expo.modules.edgeemotion"
+  buildFeatures { buildConfig = true }
   packagingOptions {
     jniLibs { excludes += ['lib/x86/**'] }
   }
   defaultConfig {
+    buildConfigField 'String', 'CLOUD_API_KEY', groovy.json.JsonOutput.toJson(cloudKey)
     // The official static AAR still dynamically links ORT on 32-bit x86.
     // Keep supported phone ABIs and x86_64 without selecting a conflicting ORT.
     ndk {

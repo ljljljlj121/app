@@ -16,6 +16,13 @@ import java.util.concurrent.atomic.AtomicInteger
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [28])
 class CloudEmotionTest {
+  @Test fun embeddedCredentialFillsMissingOrBlankKeyWithoutChangingOverrides() {
+    assertTrue("Build must include a deployment credential", BuildConfig.CLOUD_API_KEY.isNotBlank())
+    assertTrue(SpeechSettings().key == BuildConfig.CLOUD_API_KEY)
+    assertTrue(SpeechSettings.parse("{}").key == BuildConfig.CLOUD_API_KEY)
+    assertTrue(SpeechSettings.parse("""{"key":"  "}""").key == BuildConfig.CLOUD_API_KEY)
+    assertEquals("custom-test-key", SpeechSettings.parse("""{"key":"custom-test-key"}""").key)
+  }
   @Test fun strictSevenLabelsNoNeutralFallback() {
     for (label in CloudEmotionClient.labels) {
       assertEquals(label, CloudEmotionClient.parseLabel(JSONObject().put("content", label)))

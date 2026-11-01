@@ -3,10 +3,41 @@
 ## Delivery
 
 - Branch: `feat/unified-edge-cloud-emotion`
-- APK: `F:\app\android_app\delivery\unified-edge-cloud-emotion-20261030.apk`
-- APK SHA-256: `244220D1366170C8323B1411C79A7D4E60D9957648651BC2DB5DF57F2D40BB3C`
+- APK: `F:\app\android_app\delivery\unified-emotion-no-cloud-time-20261031.apk`
+- APK SHA-256: see `delivery-no-cloud-time-20261031.json` in this directory.
 - Build variant: release, `arm64-v8a`, debug signing inherited from the repository
-- App version: `1.1.0` / version code `9`
+- App version: `1.1.2` / version code `11`
+
+## October 31 update
+
+The latest utterance's edge image/text result and cloud audio/video result now
+appear in large, distinct cards directly below the camera, before the controls,
+diagnostics and raw frame history. Both cards refer to the same utterance ID;
+a new recording never borrows an older cloud label. Missing modalities, failures
+and visual-only fallback remain explicit. The ASR preview shows up to three lines;
+the complete transcript remains selectable in the utterance records below.
+Cloud elapsed time and completion timestamps are hidden in both the latest-result
+card and utterance records; cloud emotion labels and processing states remain visible.
+
+The APK includes the deployment credential in native Android BuildConfig. No key
+field or key content appears in the UI. Existing SecureStore overrides remain
+compatible; an absent or blank override uses the embedded credential. Connection,
+model and segmentation settings remain editable while paused.
+
+Builds read `MER_CLOUD_API_KEY` first, then the default credential from
+`F:\app\云端MER\inference_v2.py`; no Python runtime is needed. Building fails if
+neither source provides a credential. Do not include credential values or generated
+BuildConfig source in logs or delivery documents. An embedded APK credential is
+extractable from the APK; hiding it in the UI does not protect it from extraction.
+
+Build from `F:\app\android_app\android` with Java 21 and the Android SDK configured:
+
+```powershell
+gradle :edge-emotion:testDebugUnitTest :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --max-workers=4 --console=plain
+```
+
+Use the installed Gradle 8.14.3 if the repository wrapper download is unavailable.
+No Git LFS or model changes are required for this update.
 
 ## Runtime behavior
 
@@ -32,8 +63,8 @@ with neutral. No speaker-to-face identity matching is claimed.
 
 The cloud client uses the demo's Chinese prompt and constrained-output fallbacks,
 but uses a 60-second deadline, one transient retry, strict seven-label parsing, and
-sequence-bound records. The API key is stored with `expo-secure-store`; it is not
-written to logs or the checked-in configuration.
+sequence-bound records. The native build embeds the default API key; an existing
+`expo-secure-store` override takes precedence. Key values are not displayed or logged.
 
 ## Pinned models
 
@@ -50,11 +81,13 @@ dependency.
 ## Verification
 
 - TypeScript: passed (`tsc --noEmit`).
-- Existing JS regression suite: 5/5 passed.
-- Native JVM tests: 17 tests passed, including VAD timing, long-text chunking,
-  tokenizer parity, strict cloud parsing/retry, visual/text fallback and frame tests.
-- Android compile and release packaging: passed with Gradle 8.14.3; the duplicate
-  x86 ORT entries in the upstream AAR were removed because the release is arm64.
+- JS regression suite: 6/6 passed, including newest-utterance result association,
+  recording/failed states, visual fallback and unavailable results.
+- Native JVM tests: 17 passed, 1 opt-in cloud live test skipped. Coverage includes
+  embedded-key fallback, VAD timing, long-text chunking, tokenizer parity, strict
+  cloud parsing/retry, visual/text fallback and frame tests.
+- Android compile and release packaging use Gradle 8.14.3 and arm64. The upstream
+  AAR is retained; Gradle packaging excludes unsupported 32-bit x86 libraries.
 - Text model desktop check: 30 frozen samples, maximum probability error about
   `9.9e-7`; labels and three model inputs verified.
 - ASR desktop check: official model sample produced non-empty output in about

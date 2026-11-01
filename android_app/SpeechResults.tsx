@@ -35,6 +35,42 @@ const endings: Record<string, string> = {
 };
 const label = (value: string) => states[value] ?? value;
 
+const emotionNames: Record<string, string> = {
+  positive: "积极", negative: "消极", neutral: "中性",
+  happy: "高兴", sad: "悲伤", angry: "愤怒", fear: "恐惧",
+  disgust: "厌恶", surprise: "惊讶",
+};
+const emotionLabel = (tag: string) => `${emotionNames[tag] ?? tag} / ${tag}`;
+
+export function SpeechHighlights({ batch }: { batch: SpeechBatch | null }) {
+  const record = batch?.records[batch.records.length - 1];
+  const localReady = !!record?.fusionTag && ["completed", "failed"].includes(record.localStatus);
+  const cloudReady = record?.cloudStatus === "completed" && !!record.cloudTag;
+  return <View style={s.highlights}>
+    <Text style={s.title}>语句多模态结果{record ? ` · #${record.id}` : ""}</Text>
+    <View style={s.resultRow}>
+      <View style={[s.resultCard, s.localCard]}>
+        <Text style={s.resultHeading}>边端 · 图文</Text>
+        <Text style={s.resultValue}>{localReady ? emotionLabel(record.fusionTag!) :
+          record ? record.localStatus === "completed" ? "无有效结果" : label(record.localStatus) : "等待讲话"}</Text>
+        <Text style={s.muted}>{record?.fusionMode ? modes[record.fusionMode] ?? record.fusionMode :
+          "本机表情 + 离线 ASR / 文本"}{localReady && record?.localStatus === "failed" ? " · 本机处理失败" : ""}</Text>
+      </View>
+      <View style={[s.resultCard, s.remoteCard]}>
+        <Text style={s.resultHeading}>云端 · 音视频</Text>
+        <Text style={[s.resultValue, s.remoteValue]}>{cloudReady ? emotionLabel(record.cloudTag!) :
+          record ? label(record.cloudStatus) : "等待讲话"}</Text>
+        <Text style={s.muted}>七分类 · 讲话结束后处理</Text>
+      </View>
+    </View>
+    {!!record && <Text selectable numberOfLines={3} style={s.transcript}>
+      ASR：{record.transcript || record.liveTranscript || (record.localStatus === "completed" ? "转写为空" : "等待转写…")}
+    </Text>}
+    {!!record && <Text style={s.muted}>{record.liveTranscript && !record.transcript ? "临时转写，结束后校正 · " : ""}
+      完整文本与失败详情见下方语句记录</Text>}
+  </View>;
+}
+
 export function SpeechResults({ batch }: { batch: SpeechBatch | null }) {
   return <View style={s.section}>
     <Text style={s.title}>语句与云端记录</Text>
@@ -44,9 +80,7 @@ export function SpeechResults({ batch }: { batch: SpeechBatch | null }) {
     {[...(batch?.records ?? [])].reverse().map(record => <View style={s.card} key={record.id}>
       <Text style={s.text}>#{record.id} · {record.durationMs != null ? `${(record.durationMs / 1000).toFixed(2)} 秒 · ` : ""}
         {record.endReason ? endings[record.endReason] ?? record.endReason : "录制中"}</Text>
-      <Text style={s.text}>云端：{record.cloudTag ?? label(record.cloudStatus)}
-        {record.cloudMs != null ? ` · ${(record.cloudMs / 1000).toFixed(1)} 秒` : ""}
-        {record.completedAt ? ` · ${new Date(record.completedAt).toLocaleTimeString()}` : ""}</Text>
+      <Text style={s.text}>云端：{record.cloudTag ?? label(record.cloudStatus)}</Text>
       <Text selectable style={s.transcript}>{record.transcript || record.liveTranscript || (record.localStatus === "completed" ? "转写为空" : "等待离线 ASR…")}</Text>
       {!!record.liveTranscript && !record.transcript && <Text style={s.muted}>实时 ASR（片段结束后会用完整音频重新转写）</Text>}
       <Text style={s.text}>本机：{label(record.localStatus)}
@@ -79,10 +113,11 @@ export function SpeechSettings({ value, onSave, paused }: { value: SpeechConfig;
   return <View style={s.section}>
     <Pressable onPress={() => setOpen(!open)}><Text style={s.link}>{open ? "收起" : "连接与分段设置"}{!paused ? "（暂停后可修改）" : ""}</Text></Pressable>
     {open && <>
-      {(["base", "key", "model", "rms", "silenceMs", "textWeight"] as const).map(field => <View key={field}>
-        <Text style={s.muted}>{{ base: "云端 API 地址", key: "API Key（安全保存）", model: "云端模型",
+      <Text style={s.muted}>云端凭据已内置，无需填写。</Text>
+      {(["base", "model", "rms", "silenceMs", "textWeight"] as const).map(field => <View key={field}>
+        <Text style={s.muted}>{{ base: "云端 API 地址", model: "云端模型",
           rms: "本机 VAD 音量门槛 RMS（默认 200）", silenceMs: "连续静音毫秒（500–3000）", textWeight: "F3 文本权重（0–1）" }[field]}</Text>
-        <TextInput style={s.input} value={String(draft[field])} editable={paused} secureTextEntry={field === "key"}
+        <TextInput style={s.input} value={String(draft[field])} editable={paused}
           autoCapitalize="none" keyboardType={["rms", "silenceMs", "textWeight"].includes(field) ? "decimal-pad" : "default"}
           onChangeText={text => setDraft(old => ({ ...old, [field]: ["rms", "silenceMs", "textWeight"].includes(field) ? Number(text) : text }))} />
       </View>)}
@@ -107,6 +142,14 @@ export function SpeechSettings({ value, onSave, paused }: { value: SpeechConfig;
   </View>;
 }
 const s = StyleSheet.create({
+  highlights: { gap: 8, marginBottom: 8 },
+  resultRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  resultCard: { flex: 1, minWidth: 135, padding: 12, borderRadius: 12, borderWidth: 1, gap: 7 },
+  localCard: { backgroundColor: "#0d3441", borderColor: "#3dd6ce" },
+  remoteCard: { backgroundColor: "#322a22", borderColor: "#efa957" },
+  resultHeading: { color: "#f2f7ff", fontSize: 14, fontWeight: "700" },
+  resultValue: { color: "#5ce4de", fontSize: 22, fontWeight: "700" },
+  remoteValue: { color: "#ffc87d" },
   section: { gap: 7, marginTop: 12 }, title: { color: "#f2f7ff", fontWeight: "700", fontSize: 16 },
   card: { padding: 10, borderRadius: 10, backgroundColor: "#102844", gap: 5 },
   text: { color: "#e6f0ff", fontSize: 12 }, muted: { color: "#9ab2ce", fontSize: 11 },
